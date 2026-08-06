@@ -1,0 +1,58 @@
+# Secrets
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+keystore/
+secrets/
+
+
+# Foundry / contracts
+contracts/out/
+contracts/cache/
+contracts/broadcast/*/31337/
+contracts/broadcast/**/dry-run/
+contracts/docs/
+contracts/coverage/
+lcov.info
+*.lcov
+
+# broadcast/ de Sepolia est volontairement versionné
+
+
+# Node / Next.js / front
+node_modules/
+.pnp
+.pnp.js
+.next/
+out/
+build/
+dist/
+.vercel
+*.tsbuildinfo
+next-env.d.ts
+.turbo/
+.eslintcache
+
+# Ponder (indexer)
+indexer/.ponder/
+indexer/generated/
+
+
+# Logs & divers
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+
+# OS / éditeurs
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+*~
