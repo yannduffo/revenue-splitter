@@ -20,7 +20,7 @@ Use cases :
 
 ### In v1
 - Create a splitter with a member list and their shares
-- Receive ETH and any ERC-20, from anyone, with no prior registration
+- Receive ETH and any ERC-20 (-> multi-token), from anyone, with no prior registration
 - Members withdraw their own balance (pull model)
 - Update the share allocation during the splitter's lifetime
 - Full history of deposits and withdrawals, indexed off-chain
@@ -67,6 +67,19 @@ Effects : deploys a minimal proxy (EIP-1167) pointing at the Splitter implementa
 Event : `SplitterCreated(address splitter, address admin, address[] members, uint16[] shares)`
 
 Note : the implementation contract is deployed once and initialized immediately so it cannot be initialized by anyone else. 
+
+#### `SplitterFactory.createImmutableSplitter(address[] members, uint16[] shares, address admin)`
+
+Caller : anyone
+
+Preconditions : 
+- `createSplitter()` conditions
+- `address admin = address(0)`
+
+Effects : deploys a minimal proxy (EIP-1167) pointing at the Splitter implementation with no admin making share repartition immutable (still initialize members, shares).
+
+Event : `ImmutableSplitterCreated(address splitter, address[] members, uint16[] shares)`
+
 
 #### `receive()` / plain ERC-20 transfer
 Caller: anyone
@@ -197,12 +210,12 @@ To be enforced as Foundry invariant tests with a handler :
 | D9 | **Shares can change while funds are unclaimed.** | Forbidding it would make the feature useless, since an active splitter almost always holds unclaimed funds. Safety comes from the ordering in §4, not from a restriction. |
 | D10 | **Rebasing tokens must not brick the contract.** A balance below `lastKnownBalance` yields a zero delta instead of an underflow; positive rebases distribute like any other income. | Correct accounting for such tokens is out of scope, but a stuck `sync` would take the whole splitter down. |
 | D11 | **No close, no drain, no admin withdrawal, no recovery, no selfdestruct.** | Every recovery path is also a theft path. The absence of an escape hatch is the product. |
-| D12 | **Admin rights can be renounced permanently.** | The mechanism by which a team that doesn't trust anyone gets an immutable split. |
+| D12 | **Admin rights can be renounced permanently. address(0) set as Admin at creation creates an immutable Splitter** | The mechanism by which a team that doesn't trust anyone gets an immutable split. |
 
 
 ## Assumed hypothesis
 
-- The admin is trusted for *future* allocation only. Renouncing removes even that.
+- The admin is trusted for *future* allocation only. Renouncing/creating immutable Splitter removes that.
 - Exotic tokens (rebasing, ERC-777 hooks, malicious) are out of the safety guarantees.
   They cannot corrupt other tokens' accounting, since each has an independent
   accumulator, but their own may be meaningless.
