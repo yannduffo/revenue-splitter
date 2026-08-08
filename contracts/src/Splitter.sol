@@ -9,26 +9,71 @@ contract Splitter is ReentrancyGuard{
     using SafeERC20 for IERC20;
 
     error Splitter__NothingToClaim();
+    error Splitter__AlreadyInitialized();
+    error Splitter__InitilizeArgsAreNotCoherent();
+    error Splitter__TooManyMembers();
+    error Splitter__SharesAreNotCorrectlyDistributed();
+    error Splitter__MemberAddressIsZero();
+    error Splitter__MemberWithShareValueIsZero();
+    error Splitter__MemberAlreadyAdded();
 
     uint256 constant private TOTAL_SHARES = 10_000;
     uint256 constant private PRECISION = 1e18;
+    uint256 constant private MAX_MEMBERS = 50;
+    uint256 constant private MAX_TOKENS = 16;
 
     bool private isInitialized = false;
+    address[] private memberList;
+    address private admin;
 
     mapping(address tokenAddress => uint256 balance) private lastKnowBalance;
     mapping(address tokenAddress => uint256 amountAccPerShare) private accPerShare;
     mapping(address tokenAddress => mapping(address member => uint256 lastAmountAccPerShare)) private lastAccPS;
     mapping(address tokenAddress => mapping(address member => uint256 credit)) private credit;
-    mapping(address member => uint256 shares) private shares;
+    mapping(address member => uint16 shares) private shares;
 
     mapping(address tokenAddress => uint256 amount) private totalReceived;
     mapping(address tokenAddress => uint256 amount) private totalClaimed;
 
-    // function initialize(address[] memory members, mapping(address => uint256) sharesValues, address adminAddress) public {
+    //pour que personne ne puisse appelé initialize pour l'implémentation (EIP1167)
+    constructor() {
+        isInitialized = true;
+    }
 
+    function initialize(address[] calldata members_, uint16[] calldata sharesValues_, address adminAddress_) external {
+        uint256 totalShares;
 
-    //     isInitialized = true;
-    // }
+        //checking if not already initialized
+        if(isInitialized == true) revert Splitter__AlreadyInitialized();
+
+        //checking args values
+        if(members_.length != sharesValues_.length) revert Splitter__InitilizeArgsAreNotCoherent();
+        if(members_.length > MAX_MEMBERS) revert Splitter__TooManyMembers();
+
+        //checking members : no address(0), no double, no share = 0,
+        for(uint256 i=0; i < members_.length; i++){
+            if(members_[i] == address(0)) revert Splitter__MemberAddressIsZero();
+            if(shares[members_[i]] != 0)  revert Splitter__MemberAlreadyAdded(); //using shares mapping so we don't need a double for loop
+            if(sharesValues_[i] == 0) revert Splitter__MemberWithShareValueIsZero();
+
+            //adding to local variables :
+            memberList.push(members_[i]);
+            shares[members_[i]] = sharesValues_[i];
+
+            //to check total shares
+            totalShares += uint256(sharesValues_[i]);
+        }
+
+        //checking totalShares value :
+        if(totalShares != TOTAL_SHARES) revert Splitter__SharesAreNotCorrectlyDistributed();
+
+        //set the admin :
+        admin = adminAddress_;
+
+        //mark contract as initialized
+        isInitialized = true;
+        //TODO : émettre l'événement
+    }
 
     /**
     * Get the contrat balance for a designated token
