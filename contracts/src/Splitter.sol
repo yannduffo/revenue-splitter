@@ -60,7 +60,7 @@ contract Splitter is ReentrancyGuard{
             memberList.push(members_[i]);
             shares[members_[i]] = sharesValues_[i];
 
-            //to check total shares
+            //to check total shares == 10_000
             totalShares += uint256(sharesValues_[i]);
         }
 
@@ -159,6 +159,19 @@ contract Splitter is ReentrancyGuard{
         uint256 delta = syncBalance - lastKnowBalance[tokenAddress];
         uint256 syncedAccPerShare = accPerShare[tokenAddress] + (delta * PRECISION / TOTAL_SHARES);
         return syncedAccPerShare;
+    }
+
+    // -------------------------------------- getters -------------------------------------------
+    function getAdmin() external view returns(address){
+        return admin;
+    }
+
+    function getMembers() external view returns(address[] memory){
+        return memberList;
+    }
+
+    function getMemberShares(address member) external view returns(uint16){
+        return shares[member];
     }
 
 }
