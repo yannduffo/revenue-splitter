@@ -55,4 +55,90 @@ contract SplitterTest is Test {
         assertEq(shareMember1, SHARES_USER2);
     }
 
+    function testInitializeRevertIfCalledTwoTimes() public {
+        vm.prank(user);
+        vm.expectRevert(Splitter.Splitter__AlreadyInitialized.selector);
+        Splitter(splitterClone).initialize(members, shareDistribution, address(user));
+    }
+
+    // TODO : qu'est ce qu'il se passe avec un tableau de member vide ? ou même un des autres argument vide en soit ?
+
+    // function testInitializeRevertIfNoMembers() public {
+    //     address newClone = _freshClone();
+    //     address[] memory noMembers;
+
+    //     vm.expectRevert();
+    //     Splitter(newClone).initialize(noMembers,shareDistribution, address(user));
+    // }
+
+    function testInitializeRevertIfTooManyMembers() public {
+        address newClone = _freshClone();
+
+        //creating a 51 table of members
+        uint256 n = 50 + 1;
+        address[] memory lotOfmembers = new address[](n);
+        uint16[] memory sharesMembers = new uint16[](n);
+        for (uint256 i = 0; i < n; i++) {
+            lotOfmembers[i] = address(uint160(i + 1));
+            sharesMembers[i] = 1;
+        }
+
+        vm.expectRevert(Splitter.Splitter__TooManyMembers.selector);
+        Splitter(newClone).initialize(lotOfmembers,sharesMembers, address(user));
+    }
+
+    function testInitializeRevertIfNbMembersDiffFromNbShareDistrib() public {
+        address newClone = _freshClone();
+        uint16[] memory sharesMembers = new uint16[](1);
+        sharesMembers[0] = 6_000;
+
+        vm.expectRevert(Splitter.Splitter__InitilizeArgsAreNotCoherent.selector);
+        Splitter(newClone).initialize(members,sharesMembers, address(user));
+    }
+
+    function testInitializeRevertIfMemberAsAddressZero() public {
+        address newClone = _freshClone();
+        address[] memory sameMembers = new address[](2);
+        sameMembers[0] = user;
+        sameMembers[1] = address(0);
+
+        vm.expectRevert(Splitter.Splitter__MemberAddressIsZero.selector);
+        Splitter(newClone).initialize(sameMembers,shareDistribution, address(user));
+    }
+
+    function testInitializeRevertIfMemberAdded2Times() public {
+        address newClone = _freshClone();
+        address[] memory sameMembers = new address[](2);
+        sameMembers[0] = user;
+        sameMembers[1] = user;
+
+        vm.expectRevert(Splitter.Splitter__MemberAlreadyAdded.selector);
+        Splitter(newClone).initialize(sameMembers,shareDistribution, address(user));
+    }
+
+    function testInitializeRevertIfMemberSharesValueIsZero() public {
+        address newClone = _freshClone();
+        uint16[] memory sharesMembers = new uint16[](2);
+        sharesMembers[0] = 6_000;
+        sharesMembers[1] = 0;
+
+        vm.expectRevert(Splitter.Splitter__MemberWithShareValueIsZero.selector);
+        Splitter(newClone).initialize(members,sharesMembers, address(user));
+    }
+
+    function testInitializeRevertIfTotalShareIsNotTenThousands() public {
+        address newClone = _freshClone();
+        uint16[] memory sharesMembers = new uint16[](2);
+        sharesMembers[0] = 6_000;
+        sharesMembers[1] = 5_000;
+
+        vm.expectRevert(Splitter.Splitter__SharesAreNotCorrectlyDistributed.selector);
+        Splitter(newClone).initialize(members,sharesMembers, address(user));
+    }
+
+    // ------------------------------------------- helpers -----------------------------------------
+    function _freshClone() internal returns(address){
+        return Clones.clone(address(implementation));
+    }
+
 }
