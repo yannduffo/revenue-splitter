@@ -7,7 +7,7 @@ import {Splitter} from "../src/Splitter.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 
-//TODO : Faire des tests avec un token qui n'a pas 18 décimales
+// TODO Faire des tests avec un token qui n'a pas 18 décimales
 
 contract SplitterTest is Test {
     Splitter implementation;
@@ -16,10 +16,14 @@ contract SplitterTest is Test {
 
     address user = makeAddr("user");
     address user2 = makeAddr("user2");
+    address user3 = makeAddr("user3");
 
     //creating args for contract initialization
     uint16 constant SHARES_USER = 6_000;
     uint16 constant SHARES_USER2 = 4_000;
+    uint16 constant TOTAL_SHARES = 10_000;
+    uint256 constant INITIAL_BALANCE = 100 ether;
+    uint256 constant BASE_DEPOSIT = 10 ether;
     address[] members = [user, user2];
     uint16[] shareDistribution = [SHARES_USER, SHARES_USER2];
 
@@ -34,11 +38,14 @@ contract SplitterTest is Test {
 
         //token contract creation + minting to user
         token = new ERC20Mock();
-        token.mint(user, 100 ether);
-        token.mint(user2, 100 ether);
+        token.mint(user, INITIAL_BALANCE);
+        token.mint(user2, INITIAL_BALANCE);
+        token.mint(user3, INITIAL_BALANCE);
     }
 
-    function testSplitterCloneInitialization() public view {
+    // ------------------------------------------- initialization ----------------------------------------------
+
+    function testSplitterCloneInitializationNominal() public view {
         //admin
         address cloneAdmin = Splitter(splitterClone).getAdmin();
         //members
@@ -55,6 +62,11 @@ contract SplitterTest is Test {
         assertEq(shareMember1, SHARES_USER2);
     }
 
+    function testInitializeRevertOnImplementationContract() public {
+        vm.expectRevert(Splitter.Splitter__AlreadyInitialized.selector);
+        Splitter(implementation).initialize(members, shareDistribution, address(user));
+    }
+
     function testInitializeRevertIfCalledTwoTimes() public {
         vm.prank(user);
         vm.expectRevert(Splitter.Splitter__AlreadyInitialized.selector);
@@ -62,7 +74,6 @@ contract SplitterTest is Test {
     }
 
     // TODO : qu'est ce qu'il se passe avec un tableau de member vide ? ou même un des autres argument vide en soit ?
-
     // function testInitializeRevertIfNoMembers() public {
     //     address newClone = _freshClone();
     //     address[] memory noMembers;
@@ -74,7 +85,7 @@ contract SplitterTest is Test {
     function testInitializeRevertIfTooManyMembers() public {
         address newClone = _freshClone();
 
-        //creating a 51 table of members
+        //creating a 51 table of members (MAX_MEMBERS = 50)
         uint256 n = 50 + 1;
         address[] memory lotOfmembers = new address[](n);
         uint16[] memory sharesMembers = new uint16[](n);
@@ -136,7 +147,112 @@ contract SplitterTest is Test {
         Splitter(newClone).initialize(members,sharesMembers, address(user));
     }
 
-    // ------------------------------------------- helpers -----------------------------------------
+    // ------------------------------------ nominal use cases -------------------------------------------
+    function testDeposit() public {
+        // depot
+        vm.prank(user3);
+        token.transfer(address(splitterClone), BASE_DEPOSIT);
+
+        //assert
+        assertEq(BASE_DEPOSIT, token.balanceOf(address(splitterClone)));
+    }
+
+    function testSimpleClaim() public{
+        // depot
+        vm.prank(user3);
+        token.transfer(address(splitterClone), BASE_DEPOSIT);
+
+        //claim from user
+        vm.prank(user);
+        Splitter(splitterClone).claim(address(token));
+
+        // comparer montant envoyé puis reçu par rapport aux shares
+        // assertEq(token.balanceOf(user), INITIAL_BALANCE + (BASE_DEPOSIT * uint256(shareDistribution[0]) / TOTAL_SHARES));
+        // -> Le test doit être "plus bête" pour ne pas utiliser la même méthode de calcul que dans le contract
+        // sinon on pourrait se tromper 2 fois de la même manière
+        assertEq(token.balanceOf(user), INITIAL_BALANCE + 6 ether);
+        // vérfier la balance du contrat
+        assertEq(token.balanceOf(splitterClone), 4 ether); //10 - 6
+        // vérifier le pending de user est 0 après le claim
+        assertEq(Splitter(splitterClone).pending(address(token), address(user)), 0);
+    }
+
+    function testClaimWithNonDivisibleAmountAsDeposit() public {
+        // depot
+        vm.prank(user3);
+        token.transfer(address(splitterClone), 7 wei);
+
+        //claim from user
+        vm.prank(user);
+        Splitter(splitterClone).claim(address(token));
+
+        // assert
+        assertEq(token.balanceOf(user), INITIAL_BALANCE + 4); //7*0,6 = 4,2 arrondi à 4 par solidity
+        assertEq(token.balanceOf(splitterClone), 3);
+        assertEq(Splitter(splitterClone).pending(address(token), address(user)), 0);
+    }
+
+    function testClaimRevertOnReentry() public {
+        // depot
+        vm.prank(user3);
+        token.transfer(address(splitterClone), BASE_DEPOSIT);
+
+        //claim from user
+        vm.prank(user);
+        Splitter(splitterClone).claim(address(token));
+        //second claim in a row, expected to revert
+        vm.prank(user);
+        vm.expectRevert(Splitter.Splitter__NothingToClaim.selector);
+        Splitter(splitterClone).claim(address(token));
+    }
+
+    function testClaimAfterAnother() public {
+        // depot
+        vm.prank(user3);
+        token.transfer(address(splitterClone), BASE_DEPOSIT);
+
+        //claim from user
+        vm.prank(user);
+        Splitter(splitterClone).claim(address(token));
+
+        //claim from another user
+        vm.prank(user2);
+        Splitter(splitterClone).claim(address(token));
+
+        //assert
+        assertEq(token.balanceOf(user2), INITIAL_BALANCE + 4 ether);
+        // vérfier la balance du contrat
+        assertEq(token.balanceOf(splitterClone), 0);
+    }
+
+    function testClaimAfterAnotherWithMoneyEarnedInBetween() public {
+        // depot
+        vm.prank(user3);
+        token.transfer(address(splitterClone), BASE_DEPOSIT);
+
+        //claim from user
+        vm.prank(user);
+        Splitter(splitterClone).claim(address(token));
+
+        // second deposit
+        vm.prank(user3);
+        token.transfer(address(splitterClone), BASE_DEPOSIT);
+
+        //second claim from another user
+        vm.prank(user2);
+        Splitter(splitterClone).claim(address(token));
+
+        //assert
+        assertEq(token.balanceOf(user), INITIAL_BALANCE + 6 ether);
+        assertEq(token.balanceOf(user2), INITIAL_BALANCE + 8 ether);
+    }
+
+
+    // --------------------------------------- invariants -----------------------------------------------
+
+
+
+    // ------------------------------------------- helpers ----------------------------------------------
     function _freshClone() internal returns(address){
         return Clones.clone(address(implementation));
     }

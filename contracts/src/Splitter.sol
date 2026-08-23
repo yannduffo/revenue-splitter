@@ -40,6 +40,7 @@ contract Splitter is ReentrancyGuard{
         isInitialized = true;
     }
 
+    //TODO: ajouter la gestion du cas "members_ vide et sharesValues_ vide" pour que ça renvoie pour l'erreur Splitter__SharesAreNotCorrectlyDistributed mais une erreur désignée" */
     function initialize(address[] calldata members_, uint16[] calldata sharesValues_, address adminAddress_) external {
         uint256 totalShares;
 
@@ -173,5 +174,4 @@ contract Splitter is ReentrancyGuard{
     function getMemberShares(address member) external view returns(uint16){
         return shares[member];
     }
-
 }

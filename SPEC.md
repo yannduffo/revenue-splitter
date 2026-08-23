@@ -2,7 +2,7 @@
 
 Design document. Pre-development. Will be updated along project advancement. 
 
-## The product 
+## 1. The product 
 
 A team creates a shared account. Each member is assigned a percentage of it. Anyone can send money to that account, and every member can withdraw their percentage any time, withour asking anyone's permission. 
 
@@ -16,7 +16,7 @@ Use cases :
 - A small working team splitting a shared revenue stream (agency, side project, ...)
 
 
-## Scope
+## 2. Scope
 
 ### In v1
 - Create a splitter with a member list and their shares
@@ -35,7 +35,7 @@ Use cases :
 - Any off-chain component other than the indexer
 
 
-## Actors and roles 
+## 3. Actors and roles 
 
 | Role | Can | Cannot |
 |---|---|---|
@@ -48,7 +48,7 @@ Use cases :
 
 
 
-## Actions
+## 4. Actions
 
 #### `SplitterFactory.createSplitter(address[] members, uint16[] shares, address admin)`
 
@@ -145,7 +145,7 @@ Event:`AdminRenounced()`
 
 
 
-## Data model
+## 5. Data model
 
 ```solidity
 uint16 constant TOTAL_SHARES = 10_000; //basis points
@@ -184,12 +184,12 @@ pending(token, member) = credit[token][member] + (accPerShare[token] - lastAccPe
 - fee-on-transfer tokens work correctly for free : only what actually arrived is distributed
 - the contract must never assume its balance can only grow
 
-## Invariants
+## 6. Invariants
 
 To be enforced as Foundry invariant tests with a handler : 
 - **INV1 : Share conservation** : `sum(shares) == TOTAL_SHARES` at all times, for any sequence of calls.
 - **INV2 : Solvency** : For every token, the sum over all members of `pending(token,m)` is less than or equal to the contract's balance of that token. Not an equality : unattributed dust and just-received unsynced funds sit above it. 
-- **INV3 : Conservation of value** : For every token, `totalReceived == totalClaimed + sum(pending) + unattributedDust`. Nothing appears, nothing disappears.
+- **INV3 : Conservation of value** : For every token, `totalReceived == totalClaimed + sum(pending) + strandedDust`, where `strandedDust` is the amount lost to per-member truncation in `settle`and is monotonically non-decreasing. Separately, `balance >= lastKnownBalance` always holds, the gap being the not-yet-attributed deposit remainder that a futur sunc will absorb. Nothing appears, the only disappearance is bounded and accounted for.
 - **INV4 : No double claim** : Calling `claim` twice in a row transfers zero the second time, and any two interleaved sequences of claims yield the same total per member. 
 - **INV5 : Monotonicity** : `accPerShare`, `totalReceived` and `totalClaimed` are non-decreasing. `accPerShare` never decreases even when the token balance does.
 - **INV6 : No retroactive theft** : A member's pending amount never decreases except throught their own `claim`. In particular, `updateShares` cannot reduce it.
@@ -201,7 +201,7 @@ To be enforced as Foundry invariant tests with a handler :
 |---|---|---|
 | D1 | **Pull, not push.** Members withdraw; the contract never sends unprompted. | Unbounded gas on N members, and a single recipient that reverts would freeze everyone's income. |
 | D2 | **Deposits detected by balance difference**, not an explicit `deposit()`. | The splitter works as a plain address: no integration for the payer, funds captured however they arrive, and fee-on-transfer tokens handled correctly for free since only what actually landed is distributed. |
-| D3 | **Integer-division dust is left unattributed and rolls into the next sync.** | Never destroyed, never arbitrarily assigned. It accrues until divisible, and INV-3 holds exactly. |
+| D3 | **Integer-division dust exists in two distinct places.** | In `sync`, the deposit-to-accumulator conversion may leave a remainder outside `lastKnownBalance`. That remainder is never destriyed and is picked up by a later sync once it becomes divisible. In `settle`, the accumulator-to-amount conversion truncates per member, and that remainder is permanently stranded in the contract. The accumulator has already conunted it as distributed, so no future sync can reclaim it. The first kind is recyclable, the second is not (bounded at one atomic unit per member per settlement (see **8 Assumed hypothesis**)) |
 | D4 | **Members cannot leave on their own; the admin sets their share to zero.** | Self-removal invites accidental permanent loss of income and opens a second path into the settlement logic for no product gain. |
 | D5 | **A removed member keeps their accrued balance forever.** | Direct consequence of INV-6, and the reason the admin role is safe to hand out. |
 | D6 | **Any ERC-20 accepted, capped at 16 registered tokens.** | An allowlist would break D2's promise. The cap exists only to bound the `updateShares` loop. |
@@ -213,12 +213,11 @@ To be enforced as Foundry invariant tests with a handler :
 | D12 | **Admin rights can be renounced permanently. address(0) set as Admin at creation creates an immutable Splitter** | The mechanism by which a team that doesn't trust anyone gets an immutable split. |
 
 
-## Assumed hypothesis
+## 8. Assumed hypothesis
 
 - The admin is trusted for *future* allocation only. Renouncing/creating immutable Splitter removes that.
 - Exotic tokens (rebasing, ERC-777 hooks, malicious) are out of the safety guarantees.
-  They cannot corrupt other tokens' accounting, since each has an independent
-  accumulator, but their own may be meaningless.
+  They cannot corrupt other tokens accounting, since each has an independent accumulator, but their own may be meaningless.
 - Funds sent to the wrong splitter are irreversibly lost (see D11)
 - Members are not protected against losing their own keys.
 - A member whose share reaches zero keeps their slot in `memberList`, so departures still
@@ -226,8 +225,9 @@ To be enforced as Foundry invariant tests with a handler :
 - No protection against a member contract that reverts on receive: they simply cannot
   claim, and nobody else is affected. That containment is the point of the pull model.
 - Front-running is not a concern: no price, no ordering advantage, no MEV in a claim.
+- **A residual amount is permanetly stranded in every splitter**. Each `settle` truncates the member's share downward, so a member receives at most one atomic unit less than their exact entitlement, per settlemet. Those units stay in the contract balance but sit aboce `lastKnownBalance`, meaning no subsequent sync will ever redistribute them and no function can withdraw them. The upper bound (inherent to these integer accumulator type of contract) is `member * settlements` atomic units : in usual use cases it will strands under 1e-14 of a token. Deliberately not mitigated.
 
 
-## Open questions
+## 9. Open questions
 
 - `MAX_TOKENS = 16` is an aritrary choice. The real constraint is the gas cost of `updateShares`, which scales with registered tokens * changed members. To be calibrated with `forge snapshot` against realistic worst case.
