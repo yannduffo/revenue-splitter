@@ -79,7 +79,7 @@ contract SplitterTest is Test {
         uint256[] memory noSharesValues;
 
         vm.expectRevert(Splitter.Splitter__MemberArrayEmpty.selector);
-        Splitter(newClone).initialize(noMembers,noSharesValues);
+        Splitter(newClone).initialize(noMembers, noSharesValues);
     }
 
     function testInitializeRevertIfTooManyMembers() public {
@@ -95,7 +95,7 @@ contract SplitterTest is Test {
         }
 
         vm.expectRevert(Splitter.Splitter__TooManyMembers.selector);
-        Splitter(newClone).initialize(lotOfmembers,sharesMembers);
+        Splitter(newClone).initialize(lotOfmembers, sharesMembers);
     }
 
     function testInitializeRevertIfNbMembersDiffFromNbShareDistrib() public {
@@ -104,7 +104,7 @@ contract SplitterTest is Test {
         sharesMembers[0] = 6_000;
 
         vm.expectRevert(Splitter.Splitter__InitilizeArgsAreNotCoherent.selector);
-        Splitter(newClone).initialize(members,sharesMembers);
+        Splitter(newClone).initialize(members, sharesMembers);
     }
 
     function testInitializeRevertIfMemberAsAddressZero() public {
@@ -114,7 +114,7 @@ contract SplitterTest is Test {
         sameMembers[1] = address(0);
 
         vm.expectRevert(Splitter.Splitter__MemberAddressIsZero.selector);
-        Splitter(newClone).initialize(sameMembers,shareDistribution);
+        Splitter(newClone).initialize(sameMembers, shareDistribution);
     }
 
     function testInitializeRevertIfMemberAdded2Times() public {
@@ -124,7 +124,7 @@ contract SplitterTest is Test {
         sameMembers[1] = user;
 
         vm.expectRevert(Splitter.Splitter__MemberAlreadyAdded.selector);
-        Splitter(newClone).initialize(sameMembers,shareDistribution);
+        Splitter(newClone).initialize(sameMembers, shareDistribution);
     }
 
     function testInitializeRevertIfMemberSharesValueIsZero() public {
@@ -134,7 +134,7 @@ contract SplitterTest is Test {
         sharesMembers[1] = 0;
 
         vm.expectRevert(Splitter.Splitter__MemberWithShareValueIsZero.selector);
-        Splitter(newClone).initialize(members,sharesMembers);
+        Splitter(newClone).initialize(members, sharesMembers);
     }
 
     function testInitializeRevertIfTotalShareIsNotTenThousands() public {
@@ -144,7 +144,7 @@ contract SplitterTest is Test {
         sharesMembers[1] = 5_000;
 
         vm.expectRevert(Splitter.Splitter__SharesAreNotCorrectlyDistributed.selector);
-        Splitter(newClone).initialize(members,sharesMembers);
+        Splitter(newClone).initialize(members, sharesMembers);
     }
 
     // ------------------------------------ nominal use cases -------------------------------------------
@@ -158,7 +158,7 @@ contract SplitterTest is Test {
         assertEq(BASE_DEPOSIT, token.balanceOf(address(splitterClone)));
     }
 
-    function testSimpleClaim() public{
+    function testSimpleClaim() public {
         // depot
         vm.prank(user3);
         token.transfer(address(splitterClone), BASE_DEPOSIT);
@@ -193,7 +193,7 @@ contract SplitterTest is Test {
         assertEq(Splitter(splitterClone).pending(address(token), address(user)), 0);
     }
 
-    function testClaimRevertOnReentry() public {
+    function testClaimRevertsOnSecondClaimInARow() public {
         // depot
         vm.prank(user3);
         token.transfer(address(splitterClone), BASE_DEPOSIT);
@@ -248,6 +248,18 @@ contract SplitterTest is Test {
         assertEq(token.balanceOf(user2), INITIAL_BALANCE + 8 ether);
     }
 
+    function testClaimRevertWhenAmountTruncateToZero() public {
+        //super small deposit < TOTAL_SHARES (10_000)
+        uint256 superSmallDeposit = 1;
+        vm.prank(user3);
+        token.transfer(splitterClone, superSmallDeposit);
+
+        //claim
+        vm.prank(user);
+        vm.expectRevert(Splitter.Splitter__NothingToClaim.selector);
+        Splitter(splitterClone).claim(address(token));
+    }
+
     //--- claimMany ---
     function testClaimMany() public {
         //depot
@@ -279,7 +291,7 @@ contract SplitterTest is Test {
 
     function testClaimManyRevertsIfToManyTokensInTokens() public {
         address[] memory tokens = new address[](21);
-        for (uint256 i=0; i<tokens.length; i++){
+        for (uint256 i = 0; i < tokens.length; i++) {
             tokens[i] = makeAddr(vm.toString(i));
         }
 
@@ -312,12 +324,102 @@ contract SplitterTest is Test {
     }
 
     // --------------------------------------- fuzz -----------------------------------------------
+    // --- conservation ---
+    function testfuzz_sumOfClaimsNeverExceedsDeposit(uint96 amount) public {
+        //lower bound = TOTAL_SHARES because it reverse if the truncate give 0 for really low amount
+        uint256 amountToDeposit = bound(amount, TOTAL_SHARES, type(uint96).max);
 
+        //deposit random amount
+        token.mint(user3, amountToDeposit);
+        vm.prank(user3);
+        token.transfer(splitterClone, amountToDeposit);
 
+        //claim
+        vm.prank(user);
+        Splitter(splitterClone).claim(address(token));
+        vm.prank(user2);
+        Splitter(splitterClone).claim(address(token));
 
-    // ------------------------------------------- helpers ----------------------------------------------
-    function _freshClone() internal returns(address){
-        return Clones.clone(address(implementation));
+        //assert
+        uint256 sum = token.balanceOf(user) + token.balanceOf(user2) - (2 * INITIAL_BALANCE);
+        assertApproxEqAbs(sum, amountToDeposit, 1);
     }
 
+    // --- coherence ---
+    function testfuzz_pendingMatchesClaimedAmount(uint96 amount) public {
+        uint256 amountToDeposit = bound(amount, TOTAL_SHARES, type(uint96).max);
+
+        //deposit random amount
+        token.mint(user3, amountToDeposit);
+        vm.prank(user3);
+        token.transfer(splitterClone, amountToDeposit);
+
+        //get pending
+        uint256 expectedAmountToClaim = Splitter(splitterClone).pending(address(token), user);
+        //claim
+        vm.prank(user);
+        Splitter(splitterClone).claim(address(token));
+
+        //assert
+        assertEq(expectedAmountToClaim, token.balanceOf(user) - INITIAL_BALANCE);
+    }
+
+    // --- proportionality ---
+    function testfuzz_claimIsProportionalToShares(uint96 amount) public {
+        uint256 amountToDeposit = bound(amount, TOTAL_SHARES, type(uint96).max);
+        //deposit
+        token.mint(user3, amountToDeposit);
+        vm.prank(user3);
+        token.transfer(splitterClone, amountToDeposit);
+
+        //claim
+        vm.prank(user);
+        Splitter(splitterClone).claim(address(token));
+        vm.prank(user2);
+        Splitter(splitterClone).claim(address(token));
+
+        uint256 receivedByUser = token.balanceOf(user) - INITIAL_BALANCE;
+        uint256 receivedByUser2 = token.balanceOf(user2) - INITIAL_BALANCE;
+
+        // cross-multiplication : receivedByUser / receivedByUser2 == SHARES_USER / SHARES_USER2
+        // so receivedByUser * SHARES_USER2 should equal receivedByUser2 * SHARES_USER
+        assertApproxEqAbs(receivedByUser * SHARES_USER2, receivedByUser2 * SHARES_USER, SHARES_USER);
+    }
+
+    // --- deposit independance ---
+    function testfuzz_multipleDepositsAccumulate(uint96 amountA, uint96 amountB) public {
+        uint256 depositA = bound(amountA, TOTAL_SHARES, type(uint96).max);
+        uint256 depositB = bound(amountB, TOTAL_SHARES, type(uint96).max);
+
+        // reference splitter : one single deposit of depositA + depositB
+        address referenceClone = _freshClone();
+        Splitter(referenceClone).initialize(members, shareDistribution);
+
+        token.mint(user3, (depositA + depositB) * 2);
+
+        // splitterClone : two successive deposits, no claim in between
+        vm.startPrank(user3);
+        token.transfer(splitterClone, depositA);
+        token.transfer(splitterClone, depositB);
+        token.transfer(referenceClone, depositA + depositB);
+        vm.stopPrank();
+
+        uint256 balanceBefore = token.balanceOf(user);
+        vm.prank(user);
+        Splitter(splitterClone).claim(address(token));
+        uint256 fromTwoDeposits = token.balanceOf(user) - balanceBefore;
+
+        balanceBefore = token.balanceOf(user);
+        vm.prank(user);
+        Splitter(referenceClone).claim(address(token));
+        uint256 fromOneDeposit = token.balanceOf(user) - balanceBefore;
+
+        // two deposits then one claim must pay the same as one deposit of the sum
+        assertEq(fromTwoDeposits, fromOneDeposit);
+    }
+
+    // ------------------------------------------- helpers ----------------------------------------------
+    function _freshClone() internal returns (address) {
+        return Clones.clone(address(implementation));
+    }
 }
