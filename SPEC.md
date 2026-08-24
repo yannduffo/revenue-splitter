@@ -6,7 +6,7 @@ Design document. Pre-development. Will be updated along project advancement.
 
 A team creates a shared account. Each member is assigned a percentage of it. Anyone can send money to that account, and every member can withdraw their percentage any time, withour asking anyone's permission. 
 
-There is non treasurer, no spreadsheet, and no one who has to remember to forward money. The split is defined once, publicly and enforced automatically. If the team's composition changes, the percentage can be updated, and money that arrived before the change stays split according to the old percentages. 
+There is non treasurer, no spreadsheet, and no one who has to remember to forward money. The split is defined once, publicly and enforced automatically. It is also final : the allocation is fixed at creation and nobody can ever change it, not even the team that created it.
 
 Members are never paid automatically. They withdraw when they choose to. This is a deliberate design decision. 
 
@@ -19,13 +19,14 @@ Use cases :
 ## 2. Scope
 
 ### In v1
-- Create a splitter with a member list and their shares
-- Receive ETH and any ERC-20 (-> multi-token), from anyone, with no prior registration
+- Create a splitter with a member list and their shares, fixed once and for all at creation
+- Receive any ERC-20 (-> multi-token), from anyone, with no prior registration
 - Members withdraw their own balance (pull model)
-- Update the share allocation during the splitter's lifetime
 - Full history of deposits and withdrawals, indexed off-chain
 
 ### Explicitly out of v1
+- Native ETH (v2). Wrap to WETH and use it like any other ERC-20
+- Mutable share allocation and the admin role that goes with it (v2)
 - Continuous streaming of payments (v2)
 - Claiming on behalf of others (v2)
 - Governance or voting on share changes
@@ -39,18 +40,17 @@ Use cases :
 
 | Role | Can | Cannot |
 |---|---|---|
-| Member | Withdraw their own accrued balance, for any token, at any time. Read all splitter state | Change shares allocation. Withdraw on behalf of others. Prevent others from withdrawing. Leave on their own. |
-| Admin (1 per splitter set at creation) | Update the share allocation. Transfer Admin rights. Renounce admin rights permanently | Withdraw the contract's funds or any other member's balance. Access member balances. Remove a member's already-accrued balance |
-| Payer (anyone) | Send ETH or any ERC-20 to the splitter address. Trigger `sync` for any token | Anything else |
+| Member | Withdraw their own accrued balance, for any token, at any time. Read all splitter state. | Change shares allocation. Withdraw on behalf of others. Prevent others from withdrawing. Leave on their own. |
+| Payer (anyone) | Send any ERC-20 to the splitter address. | Anything else. The splitter has no entry point for a payer at all. |
 | Factory owner | Nothing operational (factory is ownerless after deployment) | - |
 
-**Deliberate limit of the admin role :** The admin can change future distribution but cannot touch already earned funds. The worst he can do is set a member's future share to 0 (which is not retroactively applied). 
+**What immutability guarantees :** no role can change the distribution. There is no privileged address in a splitter : the allocation agreed at creation is the only one the contract will ever apply, and the only funds movement the contract can perform is a member claiming their own share. 
 
 
 
 ## 4. Actions
 
-#### `SplitterFactory.createSplitter(address[] members, uint16[] shares, address admin)`
+#### `SplitterFactory.createSplitter(address[] members, uint256[] shares)`
 
 Caller : anyone
 
@@ -62,121 +62,98 @@ Preconditions :
 - every share `>0`
 - `sum(shares) == TOTAL_SHARES`
 
-Effects : deploys a minimal proxy (EIP-1167) pointing at the Splitter implementation. Initialize members, shares and admin.
+Effects : deploys a minimal proxy (EIP-1167) pointing at the Splitter implementation. Initialize members and shares.
 
-Event : `SplitterCreated(address splitter, address admin, address[] members, uint16[] shares)`
+Event : `SplitterCreated(address splitter, address[] members, uint256[] shares)`
 
-Note : the implementation contract is deployed once and initialized immediately so it cannot be initialized by anyone else. 
-
-#### `SplitterFactory.createImmutableSplitter(address[] members, uint16[] shares, address admin)`
-
-Caller : anyone
-
-Preconditions : 
-- `createSplitter()` conditions
-- `address admin = address(0)`
-
-Effects : deploys a minimal proxy (EIP-1167) pointing at the Splitter implementation with no admin making share repartition immutable (still initialize members, shares).
-
-Event : `ImmutableSplitterCreated(address splitter, address[] members, uint16[] shares)`
+Note : the implementation contract (EIP1167 model) is deployed once and initialized immediately so it cannot be initialized by anyone else. 
 
 
-#### `receive()` / plain ERC-20 transfer
+#### plain ERC-20 transfer
 Caller: anyone
 
-Effects: none on contract state. Funds simply sit in the contract until a `sync` attributes them. This is what makes the splitter usable as a plain payment address: a payer needs no integration, no approval, and no knowledge that it's a splitter.
+Effects: none on contract state. Funds simply sit in the contract until the next internal `sync` attributes them. This is what makes the splitter usable as a plain payment address: a payer needs no integration, no approval, and no knowledge that it's a splitter.
 
-Event: none for ERC-20 (impossible to detect); `Received(address from, uint256 amount)` for ETH.
+Event: none (impossible to detect).
 
 
-#### `sync(address token)`
-Caller: anyone (permissionless, and called internally before any state-sensitive operation)
+#### `_sync(address token)` — internal
+Caller: the contract itself, at the start of every `claim`. Not exposed in v1.
 
 Preconditions: none
 
-Effects: computes `delta = currentBalance - lastKnownBalance[token]`. increases `accPerShare[token]` by `delta * PRECISION / TOTAL_SHARES`. increases `lastKnownBalance[token]` by the exactly attributable portion only (see Q1 on dust); registers the token in `registeredTokens` on first sight
-
-Reverts: if `registeredTokens.length == MAX_TOKENS` and the token is new
+Effects: computes `delta = currentBalance - lastKnownBalance[token]`. increases `accPerShare[token]` by `delta * PRECISION / TOTAL_SHARES`. increases `lastKnownBalance[token]` and `totalAttributed[token]`
 
 Event: `Synced(address token, uint256 amount, uint256 newAccPerShare)`
 
+Note: with no public entry point, a token is attributed only when a member claims it. Nothing is lost in the meantime : the delta is read from the balance, so any number of unsynced deposits is absorbed at once by the next claim. A public `sync` may come back if the indexer needs `Synced` events independently of claims.
+
+
+#### `_claim(address token, address member) returns (uint256)` — internal
+Caller: `claim` and `claimMany` only. The whole claiming logic lives here; the two entry points only decide when a zero result is an error.
+
+Effects: `_sync(token)` first; computes the member's pending amount (§5), truncated down to the atomic unit (D3); resets their accumulator checkpoint. If the amount is non-zero : transfers it, decreases `lastKnownBalance[token]`, increases `totalClaimed[token]`, emits `Claimed`. Returns the amount transferred, zero included.
+
+Reverts: never on its own account — a member with nothing pending is not an error here. Only the token transfer itself can revert.
+
+Event: `Claimed(address token, address member, uint256 amount)`, **only when `amount > 0`**. A zero amount does nothing at all : no transfer, no event. Some ERC-20 revert on a zero-value transfer, and a zero `Claimed` would pollute the indexer for no information.
+
 
 #### `claim(address token)`
-Caller: a member, or a former member with a non-zero balance
+Caller: a member
 
-Effects: `sync(token)` first; computes the member's pending amount; adds any stored credit (§5); zeroes both; transfers the total; decreases `lastKnownBalance[token]`
+Effects: `_claim(token, msg.sender)`
 
-Reverts: amount is zero; ETH transfer fails
+Reverts: the returned amount is zero (nothing to claim); token transfer fails
 
-Event: `Claimed(address token, address member, uint256 amount)`
-
-Reentrancy: `nonReentrant` + strict checks-effects-interactions. This is the only function that makes an external call to an arbitrary address.
+Reentrancy: `nonReentrant` + strict checks-effects-interactions. `_claim` is where the only external call to an arbitrary address happens, and it is never reachable outside a guarded entry point.
 
 
 #### `claimMany(address[] tokens)`
-Same as `claim(address token)` but for an array of tokens
+Caller: a member
 
+Preconditions: `1 <= tokens.length <= MAX_CLAIM_BATCH`
 
-#### `updateShares(ShareChange[] changes)`
-The most delicate action in the system.
-Caller: admin only
+Effects: loops over `tokens`, calling `_claim(token, msg.sender)` and summing the returned amounts.
 
-Preconditions: `sum(shares)` still equals `TOTAL_SHARES` after applying the changes; no duplicates in `changes`; member count stays within `MAX_MEMBERS`
+Reverts: only if the **total** is zero. A single token with nothing pending must not take the whole batch down — that is the entire reason `_claim` returns instead of reverting.
 
-Effects, strictly in this order:
-- `sync()` every registered token, so that all funds already received are attributed under the current allocation
-- for each member appearing in `changes`, and for each registered token, settle their pending amount into `credit[token][member]` and reset their accumulator checkpoint
-only then, write the new share values
+Note: duplicates in `tokens` are allowed and need no check. The first pass moves the member's checkpoint up, so every later pass on the same token returns zero and does nothing.
 
-Event: `SharesUpdated(ShareChange[] changes, uint16 newTotal)`
-
-
-#### `renounceAdmin()`
-Caller: admin
-
-Effects: sets admin to the zero address. Irreversible. The allocation can never change again; claims are unaffected.
-
-Event:`AdminRenounced()`
-
-
-**Why step 2 only covers changed members.** Because `accPerShare` is expressed per share and each increment already used the `TOTAL_SHARES` in force at that moment, a member whose share value doesn't change needs no settlement — their pending amount stays correct across the update. Only members whose share value actually changes must be settled, which bounds the loop to the caller's own calldata rather than the full member list. Setting a member's share to `0` removes them from future distributions while leaving their accrued credit fully claimable.
-
-**"Removing someone** means setting their share to `0`. They stop accruing. Everything already accrued stays available.
+Reentrancy: `nonReentrant`, one guard for the whole batch.
 
 
 
 ## 5. Data model
 
 ```solidity
-uint16 constant TOTAL_SHARES = 10_000; //basis points
+uint256 constant TOTAL_SHARES = 10_000; //basis points
 uint256 constant PRECISION = 1e18;
-uint8 constant MAX_MEMBERS = 50;
-uint8 constant MAX_TOKENS = 16;
-address constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
+uint256 constant MAX_MEMBERS = 50;
+uint256 constant MAX_CLAIM_BATCH = 20; //max tokens per claimMany call
 
-mapping(address member => uint16) shares; //basis points, sum = TOTAL_SHARES
+mapping(address member => uint256) shares; //basis points, sum = TOTAL_SHARES, never modified after creation
 address[] memberList; //for enumeration off-chain only
-address admin;
 
-address[] registeredTokens; //capped at MAX_TOKENS
 mapping(address token => uint256) accPerShare; //scaled by PRECISION
 mapping(address token => uint256) lastKnownBalance; //attributed balance
 mapping(address token => mapping(address member => uint256)) lastAccPerShare;
-mapping(address token => mapping(address member => uint256 credit)) //unclaimed
 
 //bookkepping (for invariant & UI)
-mapping(address token => uint256) totalReceived;
+mapping(address token => uint256) totalAttributed; //what a sync has actually attributed, not what has landed on the contract
 mapping(address token => uint256) totalClaimed;
 
 ```
 
 **Pending amount for a member:**
-```
-pending(token, member) = credit[token][member] + (accPerShare[token] - lastAccPerShare[token][member]) * shares[member] / PRECISION
+```bash
+pending(token, member) = (accPerShare[token] - lastAccPerShare[token][member]) * shares[member] / PRECISION
 ```
 
+`accPerShare[token]` is a global counter of everything the contract has ever received for that token, expressed per share. `lastAccPerShare[token][member]` is the member's own bookmark on that counter : the value it had the last time they claimed. Everything the counter has accumulated past that bookmark is income the member has not been paid yet. Since `shares[member]` never changes, nothing has ever to be settled outside of a claim : the accumulator gap alone always describes exactly what a member is owed.
 
-**Explained with words :** Instead of pushing money to N members on every deposit (which cost unbounded gas and lets a single reverting recipient block everyone), the contract only ever increments a single global coiunter, and each member computes qhat they are owned from the difference between that counter and their own last checkpoint. This is an usual pattern us by staking and reward in DeFi. 
+
+**Explained with words :** Instead of pushing money to N members on every deposit (which cost unbounded gas and lets a single reverting recipient block everyone), the contract only ever increments a single global counter (`accPerShare`), and each member computes that they are owned from the difference between that counter and their own last checkpoint (`lastAccPerShare`). This is an usual pattern us by staking and reward in DeFi. 
 
 **Deposit detection by balance difference :** The contract does not require a `deposit()` call. It infers incoming funds by comparing its actual token balance to what it has already attricuted. Consequeces, all deliberate : 
 - a payer can use the splitter as a plain address
@@ -188,11 +165,11 @@ pending(token, member) = credit[token][member] + (accPerShare[token] - lastAccPe
 
 To be enforced as Foundry invariant tests with a handler : 
 - **INV1 : Share conservation** : `sum(shares) == TOTAL_SHARES` at all times, for any sequence of calls.
-- **INV2 : Solvency** : For every token, the sum over all members of `pending(token,m)` is less than or equal to the contract's balance of that token. Not an equality : unattributed dust and just-received unsynced funds sit above it. 
-- **INV3 : Conservation of value** : For every token, `totalReceived == totalClaimed + sum(pending) + strandedDust`, where `strandedDust` is the amount lost to per-member truncation in `settle`and is monotonically non-decreasing. Separately, `balance >= lastKnownBalance` always holds, the gap being the not-yet-attributed deposit remainder that a futur sunc will absorb. Nothing appears, the only disappearance is bounded and accounted for.
+- **INV2 : Solvency** : For every token, the sum over all members of `pending(token,member)` is less than or equal to the contract's balance of that token. Not an equality : unattributed dust and just-received unsynced funds sit above it. 
+- **INV3 : Conservation of value** : For every token, `totalAttributed == totalClaimed + sum(pending) + strandedDust`, where `strandedDust` is the amount lost to per-member truncation in `claim` and is monotonically non-decreasing. Separately, `balance >= lastKnownBalance` always holds, the gap being the not-yet-attributed deposit remainder that a futur sunc will absorb. Nothing appears, the only disappearance is bounded and accounted for.
 - **INV4 : No double claim** : Calling `claim` twice in a row transfers zero the second time, and any two interleaved sequences of claims yield the same total per member. 
-- **INV5 : Monotonicity** : `accPerShare`, `totalReceived` and `totalClaimed` are non-decreasing. `accPerShare` never decreases even when the token balance does.
-- **INV6 : No retroactive theft** : A member's pending amount never decreases except throught their own `claim`. In particular, `updateShares` cannot reduce it.
+- **INV5 : Monotonicity** : `accPerShare`, `totalAttributed` and `totalClaimed` are non-decreasing. `accPerShare` never decreases even when the token balance does.
+- **INV6 : No retroactive theft** : A member's pending amount never decreases except throught their own `claim`. With immutable shares this now holds by construction : no function can touch `shares`, and the only write to a member's checkpoint happens in their own claim (it stays asserted in tests because it is the property the whole accounting exists to protect, and because it is the first thing a future mutable-shares version would break).
 
 
 ## 7. Design decisions
@@ -201,33 +178,28 @@ To be enforced as Foundry invariant tests with a handler :
 |---|---|---|
 | D1 | **Pull, not push.** Members withdraw; the contract never sends unprompted. | Unbounded gas on N members, and a single recipient that reverts would freeze everyone's income. |
 | D2 | **Deposits detected by balance difference**, not an explicit `deposit()`. | The splitter works as a plain address: no integration for the payer, funds captured however they arrive, and fee-on-transfer tokens handled correctly for free since only what actually landed is distributed. |
-| D3 | **Integer-division dust exists in two distinct places.** | In `sync`, the deposit-to-accumulator conversion may leave a remainder outside `lastKnownBalance`. That remainder is never destriyed and is picked up by a later sync once it becomes divisible. In `settle`, the accumulator-to-amount conversion truncates per member, and that remainder is permanently stranded in the contract. The accumulator has already conunted it as distributed, so no future sync can reclaim it. The first kind is recyclable, the second is not (bounded at one atomic unit per member per settlement (see **8 Assumed hypothesis**)) |
-| D4 | **Members cannot leave on their own; the admin sets their share to zero.** | Self-removal invites accidental permanent loss of income and opens a second path into the settlement logic for no product gain. |
-| D5 | **A removed member keeps their accrued balance forever.** | Direct consequence of INV-6, and the reason the admin role is safe to hand out. |
-| D6 | **Any ERC-20 accepted, capped at 16 registered tokens.** | An allowlist would break D2's promise. The cap exists only to bound the `updateShares` loop. |
-| D7 | **Native ETH via the `0xEee…EEeE` sentinel.** | Established convention (1inch, Aave); one code path, one accumulator mapping. |
+| D3 | **Integer-division dust exists in two distinct places.** | In `sync`, the deposit-to-accumulator conversion may leave a remainder outside `lastKnownBalance`. That remainder is never destriyed and is picked up by a later sync once it becomes divisible. In `claim`, the accumulator-to-amount conversion truncates the member's amount downward, and that remainder is permanently stranded in the contract. The accumulator has already conunted it as distributed, so no future sync can reclaim it. The first kind is recyclable, the second is not (bounded at one atomic unit per member per claim (see **8 Assumed hypothesis**)) |
+| D4 | **Members cannot leave.** | Nobody can alter the allocation, so a departure could only mean forfeiting a share to the others which is not implemented in v1. |
+| D6 | **Any ERC-20 accepted, no registration and no cap on the number of tokens.** | An allowlist would break D2's promise. Nothing on-chain ever loops over tokens, so nothing has to enumerate or bound them; the indexer covers off-chain enumeration. |
 | D8 | **50 members maximum.** | Not required by the accumulator, which never loops over members. Bounds the creation loop and keeps off-chain enumeration and the UI sane. |
-| D9 | **Shares can change while funds are unclaimed.** | Forbidding it would make the feature useless, since an active splitter almost always holds unclaimed funds. Safety comes from the ordering in §4, not from a restriction. |
 | D10 | **Rebasing tokens must not brick the contract.** A balance below `lastKnownBalance` yields a zero delta instead of an underflow; positive rebases distribute like any other income. | Correct accounting for such tokens is out of scope, but a stuck `sync` would take the whole splitter down. |
 | D11 | **No close, no drain, no admin withdrawal, no recovery, no selfdestruct.** | Every recovery path is also a theft path. The absence of an escape hatch is the product. |
-| D12 | **Admin rights can be renounced permanently. address(0) set as Admin at creation creates an immutable Splitter** | The mechanism by which a team that doesn't trust anyone gets an immutable split. |
+| D12 | **Every splitter is immutable. Shares are set at creation and no function can ever change them.** | There is no admin to trust, to transfer or to renounce : a team that trusts nobody gets that by default, and so does a team that trusts each other today but cannot promise anything about tomorrow. |
+| D13 | **A batch claim never reverts on an empty token, only on an empty batch.** Capped at `MAX_CLAIM_BATCH` tokens. | Reverting the whole batch because one token happens to be at zero would make `claimMany` unusable in practice, since a member rarely has income on every token at once. The cap bounds a loop whose length is caller-supplied. |
 
 
 ## 8. Assumed hypothesis
 
-- The admin is trusted for *future* allocation only. Renouncing/creating immutable Splitter removes that.
-- Exotic tokens (rebasing, ERC-777 hooks, malicious) are out of the safety guarantees.
-  They cannot corrupt other tokens accounting, since each has an independent accumulator, but their own may be meaningless.
+- No trust assumption on any allocation authority : there is none. Nothing about future distribution has to be trusted, since distribution is fixed.
+- Exotic tokens (rebasing, ERC-777 hooks, malicious) are out of the safety guarantees. They cannot corrupt other tokens accounting, since each has an independent accumulator, but their own may be meaningless.
 - Funds sent to the wrong splitter are irreversibly lost (see D11)
 - Members are not protected against losing their own keys.
-- A member whose share reaches zero keeps their slot in `memberList`, so departures still
-  count against `MAX_MEMBERS`. A known limitation on high-churn teams; reclaiming slots would require proving a zero balance across every token.
-- No protection against a member contract that reverts on receive: they simply cannot
-  claim, and nobody else is affected. That containment is the point of the pull model.
+- No protection against a member contract that reverts on receive: they simply cannot claim, and nobody else is affected. That containment is the point of the pull model.
 - Front-running is not a concern: no price, no ordering advantage, no MEV in a claim.
-- **A residual amount is permanetly stranded in every splitter**. Each `settle` truncates the member's share downward, so a member receives at most one atomic unit less than their exact entitlement, per settlemet. Those units stay in the contract balance but sit aboce `lastKnownBalance`, meaning no subsequent sync will ever redistribute them and no function can withdraw them. The upper bound (inherent to these integer accumulator type of contract) is `member * settlements` atomic units : in usual use cases it will strands under 1e-14 of a token. Deliberately not mitigated.
+- **A residual amount is permanetly stranded in every splitter**. Each `claim` truncates the member's share downward, so a member receives at most one atomic unit less than their exact entitlement, per claim. Those units stay in the contract balance but sit aboce `lastKnownBalance`, meaning no subsequent sync will ever redistribute them and no function can withdraw them. The upper bound (inherent to these integer accumulator type of contract) is `members * claims` atomic units : in usual use cases it will strands under 1e-14 of a token. Deliberately not mitigated.
 
 
 ## 9. Open questions
 
-- `MAX_TOKENS = 16` is an aritrary choice. The real constraint is the gas cost of `updateShares`, which scales with registered tokens * changed members. To be calibrated with `forge snapshot` against realistic worst case.
+- **`MAX_CLAIM_BATCH = 20` is an arbitrary choice.** The real constraint is the gas cost of `claimMany`, which scales with the number of tokens in the batch and depends on how expensive each token's `transfer` is. To be calibrated with `forge snapshot` against a realistic worst case, so the cap sits comfortably under the block gas limit without being needlessly restrictive for a team invoicing in a dozen stablecoins.
+- **Unsynced tokens and any future share change.** A token can be transferred to a splitter and stay unsynced for an arbitrarily long time : until someone calls `sync` for it, the contract has no way to know that token even exists, so it cannot sync it on its own before applying an allocation change. If shares ever become mutable, funds received *before* the change would therefore be distributed under the *new* allocation as soon as someone finally syncs. Harmless in v1, where no allocation can change, but any mutable-shares work must resolve it before shipping (candidates: a caller-supplied token list synced as part of the change, a delay/attestation on the change, or making the change itself token-scoped).
