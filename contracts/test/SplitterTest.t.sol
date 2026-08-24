@@ -7,12 +7,13 @@ import {Splitter} from "../src/Splitter.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 
-// TODO Faire des tests avec un token qui n'a pas 18 décimales
+// TODO Faire des tests avec un token ERC20 qui n'a pas 18 décimales
 
 contract SplitterTest is Test {
     Splitter implementation;
     address splitterClone;
     ERC20Mock token;
+    ERC20Mock token2;
 
     address user = makeAddr("user");
     address user2 = makeAddr("user2");
@@ -38,9 +39,11 @@ contract SplitterTest is Test {
 
         //token contract creation + minting to user
         token = new ERC20Mock();
+        token2 = new ERC20Mock();
         token.mint(user, INITIAL_BALANCE);
         token.mint(user2, INITIAL_BALANCE);
         token.mint(user3, INITIAL_BALANCE);
+        token2.mint(user3, INITIAL_BALANCE);
     }
 
     // ------------------------------------------- initialization ----------------------------------------------
@@ -70,14 +73,14 @@ contract SplitterTest is Test {
         Splitter(splitterClone).initialize(members, shareDistribution);
     }
 
-    // TODO : qu'est ce qu'il se passe avec un tableau de member vide ? ou même un des autres argument vide en soit ?
-    // function testInitializeRevertIfNoMembers() public {
-    //     address newClone = _freshClone();
-    //     address[] memory noMembers;
+    function testInitializeRevertIfEmptyArray() public {
+        address newClone = _freshClone();
+        address[] memory noMembers;
+        uint256[] memory noSharesValues;
 
-    //     vm.expectRevert();
-    //     Splitter(newClone).initialize(noMembers,shareDistribution, address(user));
-    // }
+        vm.expectRevert(Splitter.Splitter__MemberArrayEmpty.selector);
+        Splitter(newClone).initialize(noMembers,noSharesValues);
+    }
 
     function testInitializeRevertIfTooManyMembers() public {
         address newClone = _freshClone();
@@ -145,6 +148,7 @@ contract SplitterTest is Test {
     }
 
     // ------------------------------------ nominal use cases -------------------------------------------
+    // --- claim ---
     function testDeposit() public {
         // depot
         vm.prank(user3);
@@ -244,8 +248,70 @@ contract SplitterTest is Test {
         assertEq(token.balanceOf(user2), INITIAL_BALANCE + 8 ether);
     }
 
+    //--- claimMany ---
+    function testClaimMany() public {
+        //depot
+        vm.startPrank(user3);
+        token.transfer(address(splitterClone), BASE_DEPOSIT);
+        token2.transfer(address(splitterClone), BASE_DEPOSIT);
+        vm.stopPrank();
 
-    // --------------------------------------- invariants -----------------------------------------------
+        address[] memory tokens = new address[](2);
+        tokens[0] = address(token);
+        tokens[1] = address(token2);
+
+        //claim many
+        vm.prank(user);
+        Splitter(splitterClone).claimMany(tokens);
+
+        //asserts
+        assertEq(token.balanceOf(user), INITIAL_BALANCE + 6 ether);
+        assertEq(token2.balanceOf(user), 6 ether); //no initial_balance for token2
+        assertEq(Splitter(splitterClone).pending(address(token), user), 0);
+    }
+
+    function testClaimManyRevertsIfTokensArrayIsEmpty() public {
+        address[] memory tokens;
+
+        vm.expectRevert(Splitter.Splitter__InvalidArrayOfTokens.selector);
+        Splitter(splitterClone).claimMany(tokens);
+    }
+
+    function testClaimManyRevertsIfToManyTokensInTokens() public {
+        address[] memory tokens = new address[](21);
+        for (uint256 i=0; i<tokens.length; i++){
+            tokens[i] = makeAddr(vm.toString(i));
+        }
+
+        vm.expectRevert(Splitter.Splitter__InvalidArrayOfTokens.selector);
+        Splitter(splitterClone).claimMany(tokens);
+    }
+
+    function testClaimManyRevertsIfNothingToclaimOnEveryTokens() public {
+        address[] memory tokens = new address[](2);
+        tokens[0] = address(token);
+        tokens[1] = address(token2);
+
+        //claim many
+        vm.prank(user);
+        vm.expectRevert(Splitter.Splitter__NothingToClaim.selector);
+        Splitter(splitterClone).claimMany(tokens);
+    }
+
+    // --- pending ---
+    function testPending() public {
+        //deposit
+        vm.prank(user3);
+        token.transfer(address(splitterClone), BASE_DEPOSIT);
+
+        // act
+        uint256 amountToGet = Splitter(splitterClone).pending(address(token), user);
+
+        //assert
+        assertEq(amountToGet, 6 ether);
+    }
+
+    // --------------------------------------- fuzz -----------------------------------------------
 
 
 
