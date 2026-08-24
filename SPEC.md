@@ -54,7 +54,19 @@ Use cases :
 
 Caller : anyone
 
+Preconditions : none of its own. Everything is validated by `initialize`, in the same transaction.
+
+Effects : deploys a minimal proxy (EIP-1167) pointing at the Splitter implementation, then immediately calls `initialize(members, shares)` on it. A clone is therefore never observable in an uninitialized state.
+
+Event : `SplitterCreated(address splitter)`. Only the address : the factory's event says "this splitter came from this factory", nothing more. The allocation is announced by the splitter itself (see `initialize`).
+
+
+#### `Splitter.initialize(address[] members, uint256[] shares)`
+
+Caller : anyone, but exactly once per clone. This is where members and shares actually come into existence.
+
 Preconditions : 
+- not already initialized
 - `members.length == shares.length`
 - `1 <= members.length <= MAX_MEMBERS`
 - no duplicate
@@ -62,11 +74,11 @@ Preconditions :
 - every share `>0`
 - `sum(shares) == TOTAL_SHARES`
 
-Effects : deploys a minimal proxy (EIP-1167) pointing at the Splitter implementation. Initialize members and shares.
+Effects : writes `memberList` and `shares`, then marks the clone as initialized. Nothing here can ever run again, which is what makes the allocation immutable (D12).
 
-Event : `SplitterCreated(address splitter, address[] members, uint256[] shares)`
+Event : `SplitterInitialized(address[] members, uint256[] shares)`. No `splitter` parameter : the log already carries the emitting clone's address.
 
-Note : the implementation contract (EIP1167 model) is deployed once and initialized immediately so it cannot be initialized by anyone else. 
+Note : the implementation contract (EIP-1167 model) marks itself as initialized in its constructor, so nobody can initialize it directly. Only clones can be initialized, and only once. 
 
 
 #### plain ERC-20 transfer
