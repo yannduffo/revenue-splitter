@@ -20,19 +20,19 @@ contract Splitter is ReentrancyGuard{
     uint256 constant private TOTAL_SHARES = 10_000;
     uint256 constant private PRECISION = 1e18;
     uint256 constant private MAX_MEMBERS = 50;
-    uint256 constant private MAX_TOKENS = 16;
+    uint256 constant MAX_CLAIM_BATCH = 20; //max tokens per claimMany call
 
-    bool private isInitialized = false;
-    address[] private memberList;
-    address private admin;
+    mapping(address member => uint256) private shares; //basis points, sum = TOTAL_SHARES, never modified after creation
+    address[] private memberList; //for enumeration, off-chain only
 
-    mapping(address tokenAddress => uint256 balance) private lastKnowBalance;
-    mapping(address tokenAddress => uint256 amountAccPerShare) private accPerShare;
-    mapping(address tokenAddress => mapping(address member => uint256 lastAmountAccPerShare)) private lastAccPS;
-    mapping(address tokenAddress => mapping(address member => uint256 credit)) private credit;
-    mapping(address member => uint16 shares) private shares;
+    mapping(address token => uint256) private accPerShare;
+    mapping(address token => uint256) private lastKnowBalance;
+    mapping(address token => mapping(address member => uint256)) private lastAccPerShare;
 
-    mapping(address tokenAddress => uint256 amount) private totalReceived;
+    bool private isInitialized = false; //used for clone initialization
+
+    //bookkeeping
+    mapping(address tokenAddress => uint256 amount) private totalAttributed;
     mapping(address tokenAddress => uint256 amount) private totalClaimed;
 
     //pour que personne ne puisse appelé initialize pour l'implémentation (EIP1167)
@@ -40,9 +40,11 @@ contract Splitter is ReentrancyGuard{
         isInitialized = true;
     }
 
+    //XXX: Comment le front-end connait les tokens existant dans le splitter ? Pour pouvoir appeler pending et afficher les amount to claim ?
+
     //TODO: ajouter la gestion du cas "members_ vide et sharesValues_ vide" pour que ça renvoie pour l'erreur Splitter__SharesAreNotCorrectlyDistributed mais une erreur désignée" */
-    function initialize(address[] calldata members_, uint16[] calldata sharesValues_, address adminAddress_) external {
-        uint256 totalShares;
+    function initialize(address[] calldata members_, uint256[] calldata sharesValues_) external {
+        uint256 totalSharesCount;
 
         //checking if not already initialized
         if(isInitialized == true) revert Splitter__AlreadyInitialized();
@@ -62,116 +64,114 @@ contract Splitter is ReentrancyGuard{
             shares[members_[i]] = sharesValues_[i];
 
             //to check total shares == 10_000
-            totalShares += uint256(sharesValues_[i]);
+            totalSharesCount += sharesValues_[i];
         }
 
         //checking totalShares value :
-        if(totalShares != TOTAL_SHARES) revert Splitter__SharesAreNotCorrectlyDistributed();
-
-        //set the admin :
-        admin = adminAddress_;
+        if(totalSharesCount != TOTAL_SHARES) revert Splitter__SharesAreNotCorrectlyDistributed();
 
         //mark contract as initialized
         isInitialized = true;
-        //TODO : émettre l'événement
+        //TODO : émettre l'événement Initialized()
     }
 
     /**
     * Get the contrat balance for a designated token
-    * @param tokenAddress Address of the token balance to know
+    * @param token Address of the token balance to know
     */
-    //TODO: gérer le cas ETH
-    function _balanceOf(address tokenAddress) internal view returns(uint256){
-        return IERC20(tokenAddress).balanceOf(address(this));
+    function _balanceOf(address token) internal view returns(uint256){
+        return IERC20(token).balanceOf(address(this));
     }
 
     // TODO : ajouter la gestion des tokens appelés pour la 1ère fois
     // TODO : comprendre pourquoi la dust est "implicitement" gérée -> c'est la différence entre amountToAdd et le delta (si delta n'est pas divisible par 10_000)
     // TODO : émettre l'event
-    function _sync(address tokenAddress) internal {
-        //compare accPerShare and syncedAccPerShare
-        uint256 oldAccPerShare = accPerShare[tokenAddress];
-        uint256 syncedAccPerShare = _accPerShareAfterSync(tokenAddress);
+    /**
+    * Check if a sync is needed, and, if needed, updates accPerShare, lastKnowBalance and totalAttributed for the designated token
+    * @param token Targeted token to sync
+    */
+    function _sync(address token) internal {
+        //getting the current accPerShare
+        uint256 currentAccPerShare = _currentAccPerShare(token);
 
-        //if there is no token which weren't synced :
-        if(oldAccPerShare == syncedAccPerShare) {
-            return;
+        //check if there is a difference between currentAccPerShare and the last synced one (accPerShare)
+        uint256 accPerShareDelta = currentAccPerShare - accPerShare[token];
+        if(accPerShareDelta == 0){
+            return; //nothing to sync
         }
 
-        //if there are token not synced yet :
-        // calcul du montant en unité de token non normalisé par rapport aux shares
-        uint256 amountToAdd = (syncedAccPerShare - oldAccPerShare) * TOTAL_SHARES / PRECISION;
-        // actualisation des valeurs par les valeurs synced
-        accPerShare[tokenAddress] = syncedAccPerShare;
-        // update states
-        lastKnowBalance[tokenAddress] += amountToAdd;
-        totalReceived[tokenAddress] += amountToAdd;
+        //if delta > 0, there are token to sync :
+        // updating token balances :
+        uint256 amountToAdd = accPerShareDelta * TOTAL_SHARES / PRECISION; //unit of tokens NON normalized by share
+        lastKnowBalance[token] += amountToAdd;
+        totalAttributed[token] += amountToAdd;
+        // updating accPerShare
+        accPerShare[token] = currentAccPerShare;
     }
-
-    function _settle(address tokenAddress, address member) internal {
-        //répartition de l'argent en fonction des parts :
-        uint256 deltaWithAccumulatorPS = accPerShare[tokenAddress] - lastAccPS[tokenAddress][member];
-        uint256 amountToPay = deltaWithAccumulatorPS * shares[member] / PRECISION; //on revient en unité token
-
-        //mise à jour des valeurs :
-        credit[tokenAddress][member] += amountToPay;
-        lastAccPS[tokenAddress][member] = accPerShare[tokenAddress]; //remonter le curseur pour ce membre
-    }
-
 
     //TODO: ajouter l'emmision de l'event Claimed
-    function claim(address tokenAddress) external nonReentrant {
-        //mises à jour :
-        _sync(tokenAddress);
-        _settle(tokenAddress, msg.sender); //appeler par le membre qui veut claim
+    function claim(address token) external nonReentrant {
+        //updating contract states:
+        _sync(token);
 
-        //preparation transfer
-        uint256 amount = credit[tokenAddress][msg.sender];
-        if(amount == 0) revert Splitter__NothingToClaim();
+        //calculating amountToPay
+        uint256 accPerShareDelta = accPerShare[token] - lastAccPerShare[token][msg.sender];
+        uint256 amountToPay = accPerShareDelta * shares[msg.sender] / PRECISION;
 
-        credit[tokenAddress][msg.sender] = 0;
+        //if amountToPay = 0 -> revert
+        if(amountToPay == 0) revert Splitter__NothingToClaim();
 
-        lastKnowBalance[tokenAddress] -= amount;
-        totalClaimed[tokenAddress] += amount;
+        //updating contract states
+        lastKnowBalance[token] -= amountToPay;
+        totalClaimed[token] += amountToPay;
+        lastAccPerShare[token][msg.sender] = accPerShare[token]; //msg.sender cursor actualized
 
         //transfer
-        IERC20(tokenAddress).safeTransfer(msg.sender, amount);
+        IERC20(token).safeTransfer(msg.sender, amountToPay);
     }
 
-    function pending(address tokenAddress, address member) public view returns(uint256){
-        //doit retourner credit[tokenAddress][member] + amountToAddSinceLastSync
-        // maj accPerShare :
-        uint256 syncedAccPerShare = _accPerShareAfterSync(tokenAddress);
-        // calculate amount that represent for our user
-        uint256 amountToAddSinceLastSync = (syncedAccPerShare - lastAccPS[tokenAddress][member]) * shares[member] / PRECISION;
-        // add credit + syncedAmount
-        uint256 availableBalanceAfterSync = credit[tokenAddress][member] + amountToAddSinceLastSync;
-        return availableBalanceAfterSync;
-    }
+    /**
+    * Calculate and return the amount a member can prentend to claim for a designated token
+    * @param token Address of the targeted token
+    * @param member Member targeted to know the available token amount to claim
+    * @return availableAmountToClaim The hypothetical amount a member can claim for the designated token
+    */
+    function pending(address token, address member) public view returns(uint256 availableAmountToClaim){
+        //getting the current accPerShare
+        uint256 currentAccPerShare = _currentAccPerShare(token);
 
-    // si on synchronisait ce token maintenant, à combien serait le compteur
-    // clarifier la gestion de la dust pour moi
-    function _accPerShareAfterSync(address tokenAddress) internal view returns(uint256) {
-        uint256 syncBalance = _balanceOf(tokenAddress);
-        if(syncBalance <= lastKnowBalance[tokenAddress]) {
-            return accPerShare[tokenAddress]; //rien n'a changé : aucun token n'a été reçu
+        //check if the member has unclaimed token
+        uint256 accPerShareDelta = currentAccPerShare - lastAccPerShare[token][member];
+        if(accPerShareDelta == 0){
+            return 0;
         }
-        //si il y a une différence : on calcul le delta et on ajoute au compteur
-        uint256 delta = syncBalance - lastKnowBalance[tokenAddress];
-        uint256 syncedAccPerShare = accPerShare[tokenAddress] + (delta * PRECISION / TOTAL_SHARES);
-        return syncedAccPerShare;
+
+        //delta > 0, the member has token to claim
+        availableAmountToClaim = accPerShareDelta * shares[member] / PRECISION;
+    }
+
+    /**
+    * Calculate and return the actualized accPerShare for a designated token
+    * @param token Address of the trageted token
+    * @return actualized accPerShare for the designated token
+    */
+    function _currentAccPerShare(address token) internal view returns(uint256) {
+        uint256 currentBalance = _balanceOf(token);
+        if(currentBalance <= lastKnowBalance[token]) {
+            return accPerShare[token]; //no token received, accPerShare doesn't need an update
+        }
+        // if there is a difference, we calculate the currentAccPerShare using the formula
+        uint256 delta = currentBalance - lastKnowBalance[token];
+        uint256 currentAccPerShare = accPerShare[token] + (delta * PRECISION / TOTAL_SHARES);
+        return currentAccPerShare;
     }
 
     // -------------------------------------- getters -------------------------------------------
-    function getAdmin() external view returns(address){
-        return admin;
-    }
-
     function getMembers() external view returns(address[] memory){
         return memberList;
     }
 
-    function getMemberShares(address member) external view returns(uint16){
+    function getMemberShares(address member) external view returns(uint256){
         return shares[member];
     }
 }
