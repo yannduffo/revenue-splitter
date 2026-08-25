@@ -49,4 +49,8 @@ contract HelperConfig is Script {
             token2: address(mockToken2)
         });
     }
+
+    function getConfig() public view returns(NetworkConfig memory){
+        return activeNetworkConfig;
+    }
 }
