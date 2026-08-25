@@ -18,6 +18,9 @@ contract Handler is Test {
     mapping(address token => uint256) public ghost_totalClaimed;
     uint256 public ghost_claimCount;
     uint256 public ghost_claimManyCount;
+    //INV-6 :
+    address public ghost_lastClaimer;
+    bool public ghost_lastClaimWasMany;
 
     constructor(Splitter splitter_, address[] memory tokens_, address[] memory members_){
         splitter = splitter_;
@@ -48,6 +51,8 @@ contract Handler is Test {
 
         ghost_totalClaimed[selectedToken] += ERC20Mock(selectedToken).balanceOf(selectedMember) - balanceBefore;
         ghost_claimCount++; //count every iteration that passes the silent return (if pending == 0)
+        ghost_lastClaimer = selectedMember;
+        ghost_lastClaimWasMany = false;
     }
 
     function claimMany(uint256 memberSeed) public {
@@ -72,5 +77,13 @@ contract Handler is Test {
             ghost_totalClaimed[tokens[i]] += ERC20Mock(tokens[i]).balanceOf(selectedMember) - balances[i];
         }
         ghost_claimManyCount++;
+        ghost_lastClaimer = selectedMember;
+        ghost_lastClaimWasMany = true;
+    }
+
+    // -------------------------- helper --------------------------
+    function resetLastClaimer() external {
+        ghost_lastClaimer = address(0);
+        ghost_lastClaimWasMany = false;
     }
 }

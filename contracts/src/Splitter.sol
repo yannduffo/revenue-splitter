@@ -34,8 +34,8 @@ contract Splitter is ReentrancyGuard {
     bool private isInitialized = false; //used for clone initialization
 
     //bookkeeping
-    mapping(address tokenAddress => uint256 amount) private totalAttributed;
-    mapping(address tokenAddress => uint256 amount) private totalClaimed;
+    mapping(address token => uint256 amount) private totalAttributed;
+    mapping(address token => uint256 amount) private totalClaimed;
 
     //event SplitterCreated(address splitter, address[] members, uint256[] sharesDistribution); -> Factory
     event SplitterInitialized(address[] members, uint256[] sharesDistribution);
@@ -230,5 +230,17 @@ contract Splitter is ReentrancyGuard {
 
     function getMemberShares(address member) external view returns (uint256) {
         return shares[member];
+    }
+
+    function getAccPerShare(address token) external view returns(uint256) {
+        return accPerShare[token];
+    }
+
+    function getTotalAttributed(address token) external view returns(uint256){
+        return totalAttributed[token];
+    }
+
+    function getTotalClaimed(address token) external view returns(uint256){
+        return totalClaimed[token];
     }
 }
