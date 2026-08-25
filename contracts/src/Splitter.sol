@@ -47,7 +47,9 @@ contract Splitter is ReentrancyGuard {
         isInitialized = true;
     }
 
-    //FIX: Comment le front-end connait les tokens existant dans le splitter ? Pour pouvoir appeler pending et afficher les amount to claim ?
+    //Comment le front-end connait les tokens existant dans le splitter ? Pour pouvoir appeler pending et afficher les amount to claim ? => Indexer
+    //TODO : mettre les arguments indexer dans les événenments
+    //TODO : natspec au niveau du contrat
 
     /**
      * Function to initialize the clone (following EIP1167 standard)
