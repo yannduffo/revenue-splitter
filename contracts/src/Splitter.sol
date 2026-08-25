@@ -5,6 +5,19 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
+/**
+ * @title Splitter
+ * @notice Immutable ERC-20 revenue splitter. Members + shares are fixed once at initialize(),
+ * no admin, no way to ever change the split. Anyone can send any ERC20 to this contract with
+ * a plain transfer (no deposit() call needed), and each member can claim its share at any time.
+ * @dev Meant to be deployed as an EIP1167 minimal proxy clone from SplitterFactory. The contract
+ * doesn't push funds to members (pull model) : it uses a global accumulator (accPerShare) per
+ * token, and each member has its own checkpoint (lastAccPerShare) on that accumulator. Deposits
+ * are never explicit : they are detected by comparing the current token balance against
+ * lastKnownBalance the next time someone claims (see _sync). That's also why there is no on-chain
+ * list of tokens held by the contract, the front-end needs an indexer (or a manual "add token"
+ * input) to know what to even look for.
+ */
 contract Splitter is ReentrancyGuard {
     using SafeERC20 for IERC20;
 
@@ -28,7 +41,7 @@ contract Splitter is ReentrancyGuard {
     address[] private memberList; //for enumeration, off-chain only
 
     mapping(address token => uint256) private accPerShare;
-    mapping(address token => uint256) private lastKnowBalance;
+    mapping(address token => uint256) private lastKnownBalance;
     mapping(address token => mapping(address member => uint256)) private lastAccPerShare;
 
     bool private isInitialized = false; //used for clone initialization
@@ -39,17 +52,13 @@ contract Splitter is ReentrancyGuard {
 
     //event SplitterCreated(address splitter, address[] members, uint256[] sharesDistribution); -> Factory
     event SplitterInitialized(address[] members, uint256[] sharesDistribution);
-    event Synced(address token, uint256 amount, uint256 newAccPerShare);
-    event Claimed(address token, address member, uint256 amount); //nothing emitted if claim return 0; -> no transfer occured
+    event Synced(address indexed token, uint256 amount, uint256 newAccPerShare);
+    event Claimed(address indexed token, address indexed member, uint256 amount); //nothing emitted if claim return 0; -> no transfer occured
 
     //pour que personne ne puisse appelé initialize pour l'implémentation (EIP1167)
     constructor() {
         isInitialized = true;
     }
-
-    //Comment le front-end connait les tokens existant dans le splitter ? Pour pouvoir appeler pending et afficher les amount to claim ? => Indexer
-    //TODO : mettre les arguments indexer dans les événenments
-    //TODO : natspec au niveau du contrat
 
     /**
      * Function to initialize the clone (following EIP1167 standard)
@@ -142,7 +151,7 @@ contract Splitter is ReentrancyGuard {
     }
 
     /**
-     * Check if a sync is needed, and, if needed, updates accPerShare, lastKnowBalance and totalAttributed for the designated token
+     * Check if a sync is needed, and, if needed, updates accPerShare, lastKnownBalance and totalAttributed for the designated token
      * @param token Targeted token to sync
      * @dev dust is implicitly managed here : if the division is approximated by the low, the "unknown dust" stays on the contract
      * balance and will be discovered at the next sync
@@ -160,7 +169,7 @@ contract Splitter is ReentrancyGuard {
         //if delta > 0, there are token to sync :
         // updating token balances :
         uint256 amountToAdd = accPerShareDelta * TOTAL_SHARES / PRECISION; //unit of tokens NON normalized by share
-        lastKnowBalance[token] += amountToAdd;
+        lastKnownBalance[token] += amountToAdd;
         totalAttributed[token] += amountToAdd;
         // updating accPerShare
         accPerShare[token] = currentAccPerShare;
@@ -189,7 +198,7 @@ contract Splitter is ReentrancyGuard {
         if (amountToPay == 0) return 0;
 
         //updating contract states
-        lastKnowBalance[token] -= amountToPay;
+        lastKnownBalance[token] -= amountToPay;
         totalClaimed[token] += amountToPay;
         lastAccPerShare[token][member] = accPerShare[token]; //member cursor actualized
 
@@ -214,11 +223,11 @@ contract Splitter is ReentrancyGuard {
      */
     function _currentAccPerShare(address token) internal view returns (uint256) {
         uint256 currentBalance = _balanceOf(token);
-        if (currentBalance <= lastKnowBalance[token]) {
+        if (currentBalance <= lastKnownBalance[token]) {
             return accPerShare[token]; //no token received, accPerShare doesn't need an update
         }
         // if there is a difference, we calculate the currentAccPerShare using the formula
-        uint256 delta = currentBalance - lastKnowBalance[token];
+        uint256 delta = currentBalance - lastKnownBalance[token];
         uint256 currentAccPerShare = accPerShare[token] + (delta * PRECISION / TOTAL_SHARES);
         return currentAccPerShare;
     }

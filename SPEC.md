@@ -58,7 +58,7 @@ Preconditions : none of its own. Everything is validated by `initialize`, in the
 
 Effects : deploys a minimal proxy (EIP-1167) pointing at the Splitter implementation, then immediately calls `initialize(members, shares)` on it. A clone is therefore never observable in an uninitialized state.
 
-Event : `SplitterCreated(address splitter)`. Only the address : the factory's event says "this splitter came from this factory", nothing more. The allocation is announced by the splitter itself (see `initialize`).
+Event : `SplitterCreated(address indexed splitter, address indexed creator, address[] members, uint256[] shareDistribution)`. `creator` is indexed so a frontend can list the splitters deployed by a given address — there is no on-chain registry for that. The allocation is duplicated in `SplitterInitialized`, emitted by the clone itself in the same transaction.
 
 
 #### `Splitter.initialize(address[] members, uint256[] shares)`
@@ -178,8 +178,8 @@ pending(token, member) = (accPerShare[token] - lastAccPerShare[token][member]) *
 To be enforced as Foundry invariant tests with a handler : 
 - **INV1 : Share conservation** : `sum(shares) == TOTAL_SHARES` at all times, for any sequence of calls.
 - **INV2 : Solvency** : For every token, the sum over all members of `pending(token,member)` is less than or equal to the contract's balance of that token. Not an equality : unattributed dust and just-received unsynced funds sit above it. 
-- **INV3 : Conservation of value** : For every token, `totalAttributed == totalClaimed + sum(pending) + strandedDust`, where `strandedDust` is the amount lost to per-member truncation in `claim` and is monotonically non-decreasing. Separately, `balance >= lastKnownBalance` always holds, the gap being the not-yet-attributed deposit remainder that a futur sunc will absorb. Nothing appears, the only disappearance is bounded and accounted for.
-- **INV4 : No double claim** : Calling `claim` twice in a row transfers zero the second time, and any two interleaved sequences of claims yield the same total per member. 
+- **INV3 : Conservation of value** : For every token, `totalAttributed == totalClaimed + sum(pending) + strandedDust`, where `strandedDust` covers both the units permanently lost to past per-claim truncation and the up-to-one-unit-per-member currently truncated in the unsettled period. Bounded by `members × (1 + claims)`. Separately, `balance >= lastKnownBalance` always holds, the gap being the not-yet-attributed deposit remainder that a futur sunc will absorb. Nothing appears, the only disappearance is bounded and accounted for.
+- **INV4 : No double claim** : Calling `claim` twice in a row transfers zero the second time, and any two interleaved sequences of claims yield the same total per member. Covered by unit tests rather than by the invariant suite: a second consecutive claim reverting is a single-sequence property, better asserted directly than through random call sequences.
 - **INV5 : Monotonicity** : `accPerShare`, `totalAttributed` and `totalClaimed` are non-decreasing. `accPerShare` never decreases even when the token balance does.
 - **INV6 : No retroactive theft** : A member's pending amount never decreases except throught their own `claim`. With immutable shares this now holds by construction : no function can touch `shares`, and the only write to a member's checkpoint happens in their own claim (it stays asserted in tests because it is the property the whole accounting exists to protect, and because it is the first thing a future mutable-shares version would break).
 
@@ -208,7 +208,7 @@ To be enforced as Foundry invariant tests with a handler :
 - Members are not protected against losing their own keys.
 - No protection against a member contract that reverts on receive: they simply cannot claim, and nobody else is affected. That containment is the point of the pull model.
 - Front-running is not a concern: no price, no ordering advantage, no MEV in a claim.
-- **A residual amount is permanetly stranded in every splitter**. Each `claim` truncates the member's share downward, so a member receives at most one atomic unit less than their exact entitlement, per claim. Those units stay in the contract balance but sit aboce `lastKnownBalance`, meaning no subsequent sync will ever redistribute them and no function can withdraw them. The upper bound (inherent to these integer accumulator type of contract) is `members * claims` atomic units : in usual use cases it will strands under 1e-14 of a token. Deliberately not mitigated.
+- **A residual amount is permanetly stranded in every splitter**. Each `claim` truncates the member's share downward, so a member receives at most one atomic unit less than their exact entitlement, per claim. Those units stay in the contract balance but sit aboce `lastKnownBalance`, meaning no subsequent sync will ever redistribute them and no function can withdraw them. The upper bound is `members × (1 + claims)` atomic units. The `+ 1` is not a safety margin: truncation applies to every evaluation of a member's amount, so at any instant the sum of all pending amounts already sits up to one unit per member below the attributed total, before any claim has happened. Past claims then strand one further unit per member each. In usual use cases this stays under 1e-14 of a token. Deliberately not mitigated.
 
 
 ## 9. Open questions
