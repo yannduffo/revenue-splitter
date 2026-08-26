@@ -23,7 +23,7 @@ contract Splitter is ReentrancyGuard {
 
     error Splitter__NothingToClaim();
     error Splitter__AlreadyInitialized();
-    error Splitter__InitilizeArgsAreNotCoherent();
+    error Splitter__ArgsLengthMismatch();
     error Splitter__TooManyMembers();
     error Splitter__SharesAreNotCorrectlyDistributed();
     error Splitter__MemberAddressIsZero();
@@ -72,7 +72,7 @@ contract Splitter is ReentrancyGuard {
         if (isInitialized == true) revert Splitter__AlreadyInitialized();
 
         //checking args values
-        if (members_.length != sharesValues_.length) revert Splitter__InitilizeArgsAreNotCoherent();
+        if (members_.length != sharesValues_.length) revert Splitter__ArgsLengthMismatch();
         if (members_.length > MAX_MEMBERS) revert Splitter__TooManyMembers();
         if (members_.length == 0) revert Splitter__MemberArrayEmpty(); //-> implicitly verifying that sharesValues_ is not empty
 

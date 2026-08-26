@@ -103,7 +103,7 @@ contract SplitterTest is Test {
         uint256[] memory sharesMembers = new uint256[](1);
         sharesMembers[0] = 6_000;
 
-        vm.expectRevert(Splitter.Splitter__InitilizeArgsAreNotCoherent.selector);
+        vm.expectRevert(Splitter.Splitter__ArgsLengthMismatch.selector);
         Splitter(newClone).initialize(members, sharesMembers);
     }
 

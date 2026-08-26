@@ -4,14 +4,14 @@ Design document. Pre-development. Will be updated along project advancement.
 
 ## 1. The product 
 
-A team creates a shared account. Each member is assigned a percentage of it. Anyone can send money to that account, and every member can withdraw their percentage any time, withour asking anyone's permission. 
+A team creates a shared account. Each member is assigned a percentage of it. Anyone can send money to that account, and every member can withdraw their percentage any time, without asking anyone's permission. 
 
-There is non treasurer, no spreadsheet, and no one who has to remember to forward money. The split is defined once, publicly and enforced automatically. It is also final : the allocation is fixed at creation and nobody can ever change it, not even the team that created it.
+There is no treasurer, no spreadsheet, and no one who has to remember to forward money. The split is defined once, publicly and enforced automatically. It is also final : the allocation is fixed at creation and nobody can ever change it, not even the team that created it.
 
 Members are never paid automatically. They withdraw when they choose to. This is a deliberate design decision. 
 
 Use cases : 
-- A collective of freelances invoicing a client as on entity
+- A collective of freelancers invoicing a client as one entity
 - Music band sharing royalty income
 - A small working team splitting a shared revenue stream (agency, side project, ...)
 
@@ -165,11 +165,11 @@ pending(token, member) = (accPerShare[token] - lastAccPerShare[token][member]) *
 `accPerShare[token]` is a global counter of everything the contract has ever received for that token, expressed per share. `lastAccPerShare[token][member]` is the member's own bookmark on that counter : the value it had the last time they claimed. Everything the counter has accumulated past that bookmark is income the member has not been paid yet. Since `shares[member]` never changes, nothing has ever to be settled outside of a claim : the accumulator gap alone always describes exactly what a member is owed.
 
 
-**Explained with words :** Instead of pushing money to N members on every deposit (which cost unbounded gas and lets a single reverting recipient block everyone), the contract only ever increments a single global counter (`accPerShare`), and each member computes that they are owned from the difference between that counter and their own last checkpoint (`lastAccPerShare`). This is an usual pattern us by staking and reward in DeFi. 
+**Explained with words :** Instead of pushing money to N members on every deposit (which cost unbounded gas and lets a single reverting recipient block everyone), the contract only ever increments a single global counter (`accPerShare`), and each member computes that they are owed from the difference between that counter and their own last checkpoint (`lastAccPerShare`). This is a usual pattern used by staking and reward in DeFi. 
 
-**Deposit detection by balance difference :** The contract does not require a `deposit()` call. It infers incoming funds by comparing its actual token balance to what it has already attricuted. Consequeces, all deliberate : 
+**Deposit detection by balance difference :** The contract does not require a `deposit()` call. It infers incoming funds by comparing its actual token balance to what it has already attributed. Consequences, all deliberate : 
 - a payer can use the splitter as a plain address
-- funds sent by any means (transfer, another contract, airdrop) are aptured
+- funds sent by any means (transfer, another contract, airdrop) are captured
 - fee-on-transfer tokens work correctly for free : only what actually arrived is distributed
 - the contract must never assume its balance can only grow
 
@@ -178,19 +178,21 @@ pending(token, member) = (accPerShare[token] - lastAccPerShare[token][member]) *
 To be enforced as Foundry invariant tests with a handler : 
 - **INV1 : Share conservation** : `sum(shares) == TOTAL_SHARES` at all times, for any sequence of calls.
 - **INV2 : Solvency** : For every token, the sum over all members of `pending(token,member)` is less than or equal to the contract's balance of that token. Not an equality : unattributed dust and just-received unsynced funds sit above it. 
-- **INV3 : Conservation of value** : For every token, `totalAttributed == totalClaimed + sum(pending) + strandedDust`, where `strandedDust` covers both the units permanently lost to past per-claim truncation and the up-to-one-unit-per-member currently truncated in the unsettled period. Bounded by `members × (1 + claims)`. Separately, `balance >= lastKnownBalance` always holds, the gap being the not-yet-attributed deposit remainder that a futur sunc will absorb. Nothing appears, the only disappearance is bounded and accounted for.
+- **INV3 : Conservation of value** : For every token, `totalAttributed == totalClaimed + sum(pending) + strandedDust`, where `strandedDust` covers both the units permanently lost to past per-claim truncation and the up-to-one-unit-per-member currently truncated in the unsettled period. Bounded by `members × (1 + claims)`. Separately, `balance >= lastKnownBalance` always holds, the gap being the not-yet-attributed deposit remainder that a future sync will absorb. Nothing appears, the only disappearance is bounded and accounted for.
 - **INV4 : No double claim** : Calling `claim` twice in a row transfers zero the second time, and any two interleaved sequences of claims yield the same total per member. Covered by unit tests rather than by the invariant suite: a second consecutive claim reverting is a single-sequence property, better asserted directly than through random call sequences.
 - **INV5 : Monotonicity** : `accPerShare`, `totalAttributed` and `totalClaimed` are non-decreasing. `accPerShare` never decreases even when the token balance does.
-- **INV6 : No retroactive theft** : A member's pending amount never decreases except throught their own `claim`. With immutable shares this now holds by construction : no function can touch `shares`, and the only write to a member's checkpoint happens in their own claim (it stays asserted in tests because it is the property the whole accounting exists to protect, and because it is the first thing a future mutable-shares version would break).
+- **INV6 : No retroactive theft** : A member's pending amount never decreases except through their own `claim`. With immutable shares this now holds by construction : no function can touch `shares`, and the only write to a member's checkpoint happens in their own claim (it stays asserted in tests because it is the property the whole accounting exists to protect, and because it is the first thing a future mutable-shares version would break).
 
 
 ## 7. Design decisions
- 
+
+IDs are not contiguous : some decisions (D5, D7, D9) were dropped as the design evolved, and the gaps are left as-is rather than renumbered, to keep a trace of that history.
+
 | # | Decision | Rationale |
 |---|---|---|
 | D1 | **Pull, not push.** Members withdraw; the contract never sends unprompted. | Unbounded gas on N members, and a single recipient that reverts would freeze everyone's income. |
 | D2 | **Deposits detected by balance difference**, not an explicit `deposit()`. | The splitter works as a plain address: no integration for the payer, funds captured however they arrive, and fee-on-transfer tokens handled correctly for free since only what actually landed is distributed. |
-| D3 | **Integer-division dust exists in two distinct places.** | In `sync`, the deposit-to-accumulator conversion may leave a remainder outside `lastKnownBalance`. That remainder is never destriyed and is picked up by a later sync once it becomes divisible. In `claim`, the accumulator-to-amount conversion truncates the member's amount downward, and that remainder is permanently stranded in the contract. The accumulator has already conunted it as distributed, so no future sync can reclaim it. The first kind is recyclable, the second is not (bounded at one atomic unit per member per claim (see **8 Assumed hypothesis**)) |
+| D3 | **Integer-division dust exists in two distinct places.** | In `sync`, the deposit-to-accumulator conversion may leave a remainder outside `lastKnownBalance`. That remainder is never destroyed and is picked up by a later sync once it becomes divisible. In `claim`, the accumulator-to-amount conversion truncates the member's amount downward, and that remainder is permanently stranded in the contract. The accumulator has already counted it as distributed, so no future sync can reclaim it. The first kind is recyclable, the second is not (bounded at one atomic unit per member per claim (see **8 Assumed hypothesis**)) |
 | D4 | **Members cannot leave.** | Nobody can alter the allocation, so a departure could only mean forfeiting a share to the others which is not implemented in v1. |
 | D6 | **Any ERC-20 accepted, no registration and no cap on the number of tokens.** | An allowlist would break D2's promise. Nothing on-chain ever loops over tokens, so nothing has to enumerate or bound them; the indexer covers off-chain enumeration. |
 | D8 | **50 members maximum.** | Not required by the accumulator, which never loops over members. Bounds the creation loop and keeps off-chain enumeration and the UI sane. |
@@ -198,6 +200,7 @@ To be enforced as Foundry invariant tests with a handler :
 | D11 | **No close, no drain, no admin withdrawal, no recovery, no selfdestruct.** | Every recovery path is also a theft path. The absence of an escape hatch is the product. |
 | D12 | **Every splitter is immutable. Shares are set at creation and no function can ever change them.** | There is no admin to trust, to transfer or to renounce : a team that trusts nobody gets that by default, and so does a team that trusts each other today but cannot promise anything about tomorrow. |
 | D13 | **A batch claim never reverts on an empty token, only on an empty batch.** Capped at `MAX_CLAIM_BATCH` tokens. | Reverting the whole batch because one token happens to be at zero would make `claimMany` unusable in practice, since a member rarely has income on every token at once. The cap bounds a loop whose length is caller-supplied. |
+| D14 | **Accounting uses a global per-token accumulator (`accPerShare`) with a per-member checkpoint, instead of the simpler `totalReceived * shares / TOTAL_SHARES - released[member]` formula (like OpenZeppelin `PaymentSplitter`).** | With shares immutable in v1, the simpler formula would work, needs no `PRECISION` scaling, and truncates strictly less. The accumulator was kept because mutable shares were originally planned for v1 and only moved to v2 late in the design — it's the one structure that survives a future mutable-shares version without a full accounting rewrite. Costs a small amount of extra truncation (D3) and gas versus the simpler formula, for a v1 that doesn't yet need the accumulator's actual benefit. |
 
 
 ## 8. Assumed hypothesis
@@ -208,10 +211,11 @@ To be enforced as Foundry invariant tests with a handler :
 - Members are not protected against losing their own keys.
 - No protection against a member contract that reverts on receive: they simply cannot claim, and nobody else is affected. That containment is the point of the pull model.
 - Front-running is not a concern: no price, no ordering advantage, no MEV in a claim.
-- **A residual amount is permanetly stranded in every splitter**. Each `claim` truncates the member's share downward, so a member receives at most one atomic unit less than their exact entitlement, per claim. Those units stay in the contract balance but sit aboce `lastKnownBalance`, meaning no subsequent sync will ever redistribute them and no function can withdraw them. The upper bound is `members × (1 + claims)` atomic units. The `+ 1` is not a safety margin: truncation applies to every evaluation of a member's amount, so at any instant the sum of all pending amounts already sits up to one unit per member below the attributed total, before any claim has happened. Past claims then strand one further unit per member each. In usual use cases this stays under 1e-14 of a token. Deliberately not mitigated.
+- **A residual amount is permanently stranded in every splitter**. Each `claim` truncates the member's share downward, so a member receives at most one atomic unit less than their exact entitlement, per claim. Those units stay in the contract balance but sit above `lastKnownBalance`, meaning no subsequent sync will ever redistribute them and no function can withdraw them. The upper bound is `members × (1 + claims)` atomic units. The `+ 1` is not a safety margin: truncation applies to every evaluation of a member's amount, so at any instant the sum of all pending amounts already sits up to one unit per member below the attributed total, before any claim has happened. Past claims then strand one further unit per member each. In usual use cases this stays under 1e-14 of a token. Deliberately not mitigated.
 
 
 ## 9. Open questions
 
 - **`MAX_CLAIM_BATCH = 20` is an arbitrary choice.** The real constraint is the gas cost of `claimMany`, which scales with the number of tokens in the batch and depends on how expensive each token's `transfer` is. To be calibrated with `forge snapshot` against a realistic worst case, so the cap sits comfortably under the block gas limit without being needlessly restrictive for a team invoicing in a dozen stablecoins.
 - **Unsynced tokens and any future share change.** A token can be transferred to a splitter and stay unsynced for an arbitrarily long time : until someone calls `sync` for it, the contract has no way to know that token even exists, so it cannot sync it on its own before applying an allocation change. If shares ever become mutable, funds received *before* the change would therefore be distributed under the *new* allocation as soon as someone finally syncs. Harmless in v1, where no allocation can change, but any mutable-shares work must resolve it before shipping (candidates: a caller-supplied token list synced as part of the change, a delay/attestation on the change, or making the change itself token-scoped).
+- **Note on D14 :** the accumulator's payoff — surviving a shares-mutability upgrade without an accounting rewrite, is currently unrealized, since v1 ships with immutable shares. It was chosen when mutable shares were still targeted for v1; keeping it after that scope moved to v2 is a deliberate bet that the upgrade will happen, not a requirement of v1 itself.

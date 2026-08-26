@@ -1,5 +1,9 @@
 # IDEAS
 
+### V1 improvment : 
+- Reentrency test with ERC777 mock token
+- `createSplitterDeterministic` to be predictible and optimise front-end UX
+ 
 ### V2 : 
 - Continuous payment streaming : instead of distributing  founds upon receipt, the treasury pays them out continuonsly. Use cases : team payroll, service providers on a monthly retainer, ...
 - Claim token on behalf of another : UX improvment, not essential for v1
