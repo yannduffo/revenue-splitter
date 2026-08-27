@@ -2,6 +2,7 @@ import { createConfig, http, cookieStorage, createStorage } from "wagmi";
 import { foundry } from "viem/chains";
 import { injected } from "wagmi";
 
+//internaly used by wagmi to configure it's viem client
 export const config = createConfig({
   chains: [foundry],
   connectors: [injected()], //injected wallets (Metamask, ...)
