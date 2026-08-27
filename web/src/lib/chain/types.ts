@@ -21,12 +21,6 @@ export type SplitterToken = {
   unattributed: bigint  //held - (attributed - claimed)
 }
 
-export type Pending = {
-  token: Address
-  member: Address
-  amount: bigint
-}
-
 export type MemberBalance = {
   member: Address
   pending: bigint

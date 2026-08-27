@@ -27,3 +27,9 @@ export function shareTone(index: number, total: number): { bg: string; fg: strin
     fg: lightness > 55 ? '#16233A' : "#F4F6F5",
   }
 }
+
+// used to divide 2 bigint together witn an artificial precision of 10_000 (1e4)
+export function ratio(numerator: bigint, denominator: bigint): number {
+  if (denominator === 0n) return 0
+  return Number((numerator * 10_000n) / denominator) / 10_000
+}

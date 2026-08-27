@@ -6,11 +6,11 @@ import { isAddress, type Address } from "viem";
 import { useSplitter } from "@/hooks/useSplitter";
 import { useSplitterTokens } from "@/hooks/useSplitterTokens";
 import { useTokenBalances } from "@/hooks/useTokenBalances";
+import { useMemberDetail } from "@/hooks/useMemberDetail";
 import { useInvalidateOnBlock } from "@/hooks/useInvalidateOnBlock";
 import { AllocationBar } from "@/components/splitter/AllocationBar";
 import { TokenSelector } from "@/components/splitter/TokenSelector";
 import { MemberGrid } from "@/components/splitter/MemberGrid";
-import { shortenAddress } from "@/lib/format";
 
 export default function SplitterPage() {
   const params = useParams<{ address: string }>();
@@ -19,12 +19,16 @@ export default function SplitterPage() {
   const splitter = isAddress(address) ? (address as Address) : undefined;
 
   const [token, setToken] = useState<string>();
-  const [member, setMember] = useState<string>();
+
+  const [openMember, setOpenMember] = useState<Address>()
 
   const { data: info } = useSplitter(splitter);
   const { data: tokens } = useSplitterTokens(splitter);
+  const { data: detail, isLoading: isLoadingDetail } = useMemberDetail(
+    splitter, openMember, tokens,
+  )
 
-  useInvalidateOnBlock(["splitter-tokens", "token-balances"]);
+  useInvalidateOnBlock(["splitter-tokens", "token-balances", "member-detail"]);
 
   const activeToken = useMemo(
     () => tokens?.find((t) => t.address === token) ?? tokens?.[0],
@@ -42,9 +46,9 @@ export default function SplitterPage() {
 
   return (
     <main className="flex flex-col mx-auto max-w-275 p-6 gap-4">
-      <div>
+      <div className="flex gap-2 items-baseline">
         <p className="text-md text-muted">Splitter</p>
-        <p className="font-mono text-lg">{shortenAddress(splitter, 6)}</p>
+        <p className="font-mono text-xl">{splitter}</p>
       </div>
       <div className="flex flex-col gap-2">
         <p className="text-xs text-muted">Shares distribution : </p>
@@ -74,8 +78,10 @@ export default function SplitterPage() {
                 members={info.members}
                 balances={balances}
                 token={activeToken}
-                selected={member}
-                onSelect={setMember}
+                openMember={openMember}
+                onToggle={setOpenMember}
+                detail={detail}
+                isLoadingDetail={isLoadingDetail}
               />
             </div>
           </div>

@@ -60,7 +60,7 @@ contract SeedLocal is Script {
         tokens[1] = token2;
 
         //2. Creating some sample splitters with diverse parameters
-        // Splitter 1
+        // Splitter 1 -----------------------------------------------------------------------------------------------
         vm.startBroadcast();
         address splitter1 = _createDemoSplitter(factory, s1_members, s1_shareDistribution);
         vm.stopBroadcast();
@@ -71,7 +71,17 @@ contract SeedLocal is Script {
         _depositOnSplitter(splitter1, token1, 10 ether);
         vm.stopBroadcast();
 
-        //Splitter 2
+        //member 2 claim
+        vm.startBroadcast(MEMBER2_PK);
+        Splitter(splitter1).claim(token1);
+        vm.stopBroadcast();
+
+        //payer make another deposit
+        vm.startBroadcast(PAYER_PK);
+        _depositOnSplitter(splitter1, token1, 20 ether);
+        vm.stopBroadcast();
+
+        //Splitter 2 -----------------------------------------------------------------------------------------------
         vm.startBroadcast();
         address splitter2 = _createDemoSplitter(factory, s2_members, s2_shareDistribution);
         vm.stopBroadcast();

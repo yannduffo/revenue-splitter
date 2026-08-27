@@ -1,8 +1,17 @@
 import { getAbiItem, type Address, type PublicClient } from "viem";
 import { splitterAbi } from "@/lib/generated";
-import type { Member, MemberBalance } from "./types";
+import type { Member, MemberBalance, SplitterToken } from "./types";
 
 const claimedEvent = getAbiItem({ abi: splitterAbi, name: "Claimed" });
+
+export type MemberTokenRow = {
+  token: Address,
+  symbol: string,
+  decimals: number,
+  attributed: bigint,
+  pending: bigint,
+  claimed:bigint
+}
 
 // Get all member related balances (pending, claimed) to the designated token
 export async function getTokenBalances(
@@ -40,22 +49,40 @@ export async function getTokenBalances(
   }))
 }
 
-//get all the pending values for the designated token array for the designated member
-export async function getPendingForMember(
+export async function getMemberDetail(
   client: PublicClient,
   splitter: Address,
   member: Address,
-  tokens: Address[],
-): Promise<Record<Address, bigint>> {
-  const amounts = await Promise.all(
-    tokens.map((token) =>
-      client.readContract({
-        address: splitter,
-        abi: splitterAbi,
-        functionName: "pending",
-        args: [token, member],
-      }),
+  tokens: SplitterToken[],
+): Promise<MemberTokenRow[]> {
+  const [pendings, logs] = await Promise.all([
+    Promise.all(
+      tokens.map((t) =>
+        client.readContract({
+          address: splitter,
+          abi: splitterAbi,
+          functionName: 'pending',
+          args: [t.address, member],
+        }),
+      ),
     ),
-  );
-  return Object.fromEntries(tokens.map((t,i) => [t, amounts[i]])) as Record<Address, bigint>
+    client.getLogs({ address: splitter, event: claimedEvent, args: { member }, fromBlock: 0n }),
+  ])
+
+  const claimedByToken = new Map<string, bigint>()
+  for (const log of logs) {
+    const { token, amount } = log.args
+    if (!token || amount === undefined) continue
+    const key = token.toLowerCase()
+    claimedByToken.set(key, (claimedByToken.get(key) ?? 0n) + amount)
+  }
+
+  return tokens.map((t, i) => ({
+    token: t.address,
+    symbol: t.symbol,
+    decimals: t.decimals,
+    attributed: t.attributed,
+    pending: pendings[i],
+    claimed: claimedByToken.get(t.address.toLowerCase()) ?? 0n,
+  }))
 }
