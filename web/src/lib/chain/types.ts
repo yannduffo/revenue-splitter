@@ -10,6 +10,7 @@ export type Splitter = {
   members: Member[]     //sorted by decreasing sharedDistribution
 }
 
+//one token balances of a Splitter contract
 export type SplitterToken = {
   address: Address
   symbol: string
@@ -17,10 +18,17 @@ export type SplitterToken = {
   held: bigint          //balanceOf(splitter)
   attributed: bigint    //getTotalAttributed
   claimed: bigint       //getTotalClaimed
+  unattributed: bigint  //held - (attributed - claimed)
 }
 
 export type Pending = {
   token: Address
   member: Address
   amount: bigint
+}
+
+export type MemberBalance = {
+  member: Address
+  pending: bigint
+  claimed: bigint
 }

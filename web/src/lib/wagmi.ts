@@ -7,7 +7,7 @@ export const config = createConfig({
   chains: [foundry],
   connectors: [injected()], //injected wallets (Metamask, ...)
   transports: {
-    [foundry.id]: http('http://127.0.0.1:8545'),
+    [foundry.id]: http('http://127.0.0.1:8545', { batch: true }), //enableling RPC batching
   },
   ssr: true,
   storage: createStorage({storage : cookieStorage}),

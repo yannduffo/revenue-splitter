@@ -12,7 +12,7 @@ export function formatBps(bps: number): string {
 
 //give "pritable number" base on real bigint values
 export function formatAmount(value: bigint, decimals: number, maxFractionDigits = 4): string {
-  const [whole, fraction = ''] = formatUnits(value, decimals).split(' .')
+  const [whole, fraction = ''] = formatUnits(value, decimals).split('.')
   const kept = fraction.slice(0, maxFractionDigits).replace(/0+$/, '')
   const grouped = BigInt(whole).toLocaleString('en-US')
   return kept ? `${grouped}.${kept}` : grouped
