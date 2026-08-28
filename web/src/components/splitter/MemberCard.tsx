@@ -11,7 +11,7 @@ import { MemberFlowChart } from './MemberFlowChart'
 import { User } from 'lucide-react'
 
 export function MemberCard({
-  member, index, total, balance, token, isOpen, onToggle, detail, isLoadingDetail,
+  member, index, total, balance, token, isOpen, onToggle, isConnected, detail, isLoadingDetail,
 }: {
   member: Member
   index: number
@@ -20,35 +20,44 @@ export function MemberCard({
   token: SplitterToken
   isOpen: boolean
   onToggle: () => void
+  isConnected?: boolean
   detail?: MemberTokenRow[]
   isLoadingDetail?: boolean
-}) {
+  }) {
+  //TODO : ajouter une icone pour fermer la grande card plutot que le clic sur l'entête
   return (
-    <button
-      type="button"
-      onClick={onToggle}
-      aria-expanded={isOpen}
-      className={`block w-full rounded-xl border-x border-b border-rule bg-surface p-3 text-left ${isOpen ? 'col-span-full' : ''}`}
+    <div
+      className={`w-full rounded-xl border-x border-b border-rule bg-surface p-3 ${isOpen ? 'col-span-full' : ''}`}
       style={{ borderTop: `2px solid ${shareTone(index, total).bg}` }}
     >
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center justify-between">
-          <span className="flex gap-1 font-mono text-xs text-muted">
-            <User size={16}/>
-            {shortenAddress(member.address)}
-          </span>
-          <span className="text-xs text-muted">{formatBps(member.shareBps)}</span>
-        </div>
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={isOpen}
+        className="block w-full text-left"
+      >
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <span className="flex gap-1 font-mono text-xs text-muted">
+              <User size={16} />
+              {shortenAddress(member.address)}
+              {isConnected && (
+                <span className="self-center rounded bg-accent px-1.5 py-0.5 text-[10px] text-paper">you</span>
+              )}
+            </span>
+            <span className="text-xs text-muted">{formatBps(member.shareBps)}</span>
+          </div>
 
-        {!isOpen && (
-          <MemberFlowChart
-            pending={balance?.pending ?? 0n}
-            claimed={balance?.claimed ?? 0n}
-            decimals={token.decimals}
-            symbol={token.symbol}
-          />
-        )}
-      </div>
+          {!isOpen && (
+            <MemberFlowChart
+              pending={balance?.pending ?? 0n}
+              claimed={balance?.claimed ?? 0n}
+              decimals={token.decimals}
+              symbol={token.symbol}
+            />
+          )}
+        </div>
+      </button>
 
       {isOpen && (
         <div className="mt-4 border-t border-rule">
@@ -74,6 +83,6 @@ export function MemberCard({
           })}
         </div>
       )}
-    </button>
+    </div>
   )
 }

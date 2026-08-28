@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { isAddress, type Address } from "viem";
 import { useSplitter } from "@/hooks/useSplitter";
@@ -11,6 +11,7 @@ import { useInvalidateOnBlock } from "@/hooks/useInvalidateOnBlock";
 import { AllocationBar } from "@/components/splitter/AllocationBar";
 import { TokenSelector } from "@/components/splitter/TokenSelector";
 import { MemberGrid } from "@/components/splitter/MemberGrid";
+import { useConnectedMember } from "@/hooks/useConnectedMember";
 
 export default function SplitterPage() {
   const params = useParams<{ address: string }>();
@@ -21,6 +22,7 @@ export default function SplitterPage() {
   const [token, setToken] = useState<string>();
 
   const [openMember, setOpenMember] = useState<Address>()
+  const [touched, setTouched] = useState(false) //flag to auto-open member's card only the 1st time
 
   const { data: info } = useSplitter(splitter);
   const { data: tokens } = useSplitterTokens(splitter);
@@ -40,6 +42,17 @@ export default function SplitterPage() {
     activeToken?.address,
     info?.members,
   );
+
+  const {address: connectedAddress, isMember} = useConnectedMember(info?.members)
+
+  const handleToggle = (member?: Address) => {
+    setTouched(true)
+    setOpenMember(member)
+  }
+
+  useEffect(() => {
+    if(!touched && isMember && connectedAddress) setOpenMember(connectedAddress)
+  }, [touched, isMember, connectedAddress])
 
   if (!splitter) return <p className="p-8 text-muted">Not a valid address.</p>;
   if (!info) return <p className="p-8 text-muted">Loading…</p>;
@@ -79,9 +92,10 @@ export default function SplitterPage() {
                 balances={balances}
                 token={activeToken}
                 openMember={openMember}
-                onToggle={setOpenMember}
+                onToggle={handleToggle}
                 detail={detail}
                 isLoadingDetail={isLoadingDetail}
+                connectedAddress={connectedAddress}
               />
             </div>
           </div>

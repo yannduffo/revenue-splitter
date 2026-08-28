@@ -4,7 +4,7 @@ import type { Address } from "viem";
 import { MemberCard } from "./MemberCard";
 
 export function MemberGrid({
-  members, balances, token, openMember, onToggle, detail, isLoadingDetail,
+  members, balances, token, openMember, onToggle, detail, isLoadingDetail, connectedAddress
 }: {
   members: Member[]
   balances?: MemberBalance[]
@@ -13,7 +13,8 @@ export function MemberGrid({
   onToggle: (member?: Address) => void
   detail?: MemberTokenRow[]
   isLoadingDetail?: boolean
-}) {
+  connectedAddress?: Address
+  }) {
   return (
     <div className="grid gap-3 grid-cols-3">
       {members.map((member, i) => {
@@ -30,6 +31,7 @@ export function MemberGrid({
             token={token}
             isOpen={isOpen}
             onToggle={() => onToggle(isOpen ? undefined : member.address)}
+            isConnected = {connectedAddress?.toLowerCase() === member.address.toLowerCase()}
             detail={isOpen ? detail : undefined}
             isLoadingDetail={isOpen && isLoadingDetail}
           />
