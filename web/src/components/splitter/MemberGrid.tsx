@@ -4,8 +4,9 @@ import type { Address } from "viem";
 import { MemberCard } from "./MemberCard";
 
 export function MemberGrid({
-  members, balances, token, openMember, onToggle, detail, isLoadingDetail, connectedAddress
+  splitter, members, balances, token, openMember, onToggle, detail, isLoadingDetail, connectedAddress
 }: {
+  splitter: Address
   members: Member[]
   balances?: MemberBalance[]
   token: SplitterToken
@@ -22,6 +23,7 @@ export function MemberGrid({
         return (
           <MemberCard
             key={member.address}
+            splitter={splitter}
             member={member}
             index={i}
             total={members.length}

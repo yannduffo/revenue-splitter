@@ -88,6 +88,7 @@ export default function SplitterPage() {
             <div className="flex flex-col gap-2">
               <p className="text-xs text-muted">Members status :</p>
               <MemberGrid
+                splitter={splitter}
                 members={info.members}
                 balances={balances}
                 token={activeToken}

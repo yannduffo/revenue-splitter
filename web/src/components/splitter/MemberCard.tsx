@@ -1,5 +1,7 @@
 'use client'
 
+import { Address } from 'viem'
+
 //lib/
 import {formatBps, shareTone, shortenAddress } from '@/lib/format'
 import type { Member, MemberBalance, SplitterToken } from '@/lib/chain/types'
@@ -7,12 +9,14 @@ import type { MemberTokenRow } from '@/lib/chain/balance'
 
 //components/
 import { MemberFlowChart } from './MemberFlowChart'
+import { ClaimAction } from './ClaimAction'
 
 import { User } from 'lucide-react'
 
 export function MemberCard({
-  member, index, total, balance, token, isOpen, onToggle, isConnected, detail, isLoadingDetail,
+  splitter, member, index, total, balance, token, isOpen, onToggle, isConnected, detail, isLoadingDetail,
 }: {
+  splitter: Address
   member: Member
   index: number
   total: number
@@ -78,6 +82,9 @@ export function MemberCard({
                     symbol={row.symbol}
                   />
                 </div>
+                {isConnected && (
+                  <ClaimAction splitter={splitter} token={row.token} account={member.address} pending={row.pending} />
+                )}
               </div>
             )
           })}
