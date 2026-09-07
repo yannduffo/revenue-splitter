@@ -1,6 +1,9 @@
-import { erc20Abi, type Address, type PublicClient } from "viem";
+import { parseAbiItem, erc20Abi, type Address, type PublicClient } from "viem";
 import { splitterAbi } from "@/lib/generated";
 import type { SplitterToken } from "./types";
+
+//building our own "event Abi" so we don't need to import it
+const transferEvent = parseAbiItem("event Transfer(address indexed from, address indexed to, uint256 value)")
 
 //TODO For a specified token address, symbol & decimals never changes
 // we could take them out from the readContract after the first read
@@ -32,4 +35,41 @@ export async function getSplitterTokens(
       }
     })
   )
+}
+
+//discovering tokens by exploring RPC logs of every ERC20 Transfer event with "to === splitterAddress"
+export async function discoverTokens(
+  client: PublicClient,
+  splitter: Address,
+): Promise<Address[]>{
+  const logs = await client.getLogs({
+    event: transferEvent,
+    args: { to: splitter },
+    fromBlock: 0n, //TODO : set to blockid of splitter creation
+    toBlock: 'latest'
+  })
+
+  const seen = new Set<string>()
+  const tokens: Address[] = []
+
+  for (const log of logs) {
+    if (log.topics.length !== 3) continue //not considering ERC721 (a NFT event has 4 topics)
+    const key = log.address.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    tokens.push(log.address)
+  }
+
+  return tokens
+}
+
+// helper function to check if an address is an ERC-20 contract (calling "decimals" func that should be implemented in every ERC-20)
+// not true in every case but minimal for our use case
+export async function isErc20(client: PublicClient, address: Address): Promise<boolean> {
+  try {
+    await client.readContract({ address, abi: erc20Abi , functionName: 'decimals'})
+    return true
+} catch {
+    return false
+  }
 }

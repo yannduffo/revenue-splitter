@@ -35,11 +35,11 @@ export function parseTxError(error: unknown): TxError {
   //Function Reverted
   const reverted = error.walk((e) => e instanceof ContractFunctionRevertedError)
   if (reverted instanceof ContractFunctionRevertedError) {
-    const name = reverted.data?.errorName ?? 'UnknowRevert'
+    const name = reverted.data?.errorName ?? 'UnknownRevert'
     return {
       kind: 'revert',
       name,
-      message : REVERT_MESSAGES[name] ?? `Transaction reverte: ${name}`,
+      message : REVERT_MESSAGES[name] ?? `Transaction revert: ${name}`,
     }
   }
 

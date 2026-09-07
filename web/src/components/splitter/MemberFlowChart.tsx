@@ -15,6 +15,7 @@ export function MemberFlowChart({
     return <p className="flex h-full items-center text-xs text-muted">Nothing accrued yet</p>
   }
 
+  //TODO : change the color of pending row to differenciate pending & claimed row easily
   const rows = [
     { label: 'Pending', value: pending, r: flow.pendingRatio, bg: 'var(--color-accent)' },
     { label: 'Claimed', value: claimed, r: flow.claimedRatio, bg: 'var(--color-accent)' },

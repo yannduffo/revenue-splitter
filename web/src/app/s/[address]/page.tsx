@@ -3,15 +3,18 @@
 import { useState, useMemo, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { isAddress, type Address } from "viem";
+//hooks
 import { useSplitter } from "@/hooks/useSplitter";
 import { useSplitterTokens } from "@/hooks/useSplitterTokens";
 import { useTokenBalances } from "@/hooks/useTokenBalances";
 import { useMemberDetail } from "@/hooks/useMemberDetail";
 import { useInvalidateOnBlock } from "@/hooks/useInvalidateOnBlock";
+import { useConnectedMember } from "@/hooks/useConnectedMember";
+//components
 import { AllocationBar } from "@/components/splitter/AllocationBar";
 import { TokenSelector } from "@/components/splitter/TokenSelector";
+import { AddTokenInput } from "@/components/splitter/AddTokenInput";
 import { MemberGrid } from "@/components/splitter/MemberGrid";
-import { useConnectedMember } from "@/hooks/useConnectedMember";
 
 export default function SplitterPage() {
   const params = useParams<{ address: string }>();
@@ -20,12 +23,13 @@ export default function SplitterPage() {
   const splitter = isAddress(address) ? (address as Address) : undefined;
 
   const [token, setToken] = useState<string>();
+  const [extraToken, setExtraToken] = useState<Address[]>([])
 
   const [openMember, setOpenMember] = useState<Address>()
   const [touched, setTouched] = useState(false) //flag to auto-open member's card only the 1st time
 
   const { data: info } = useSplitter(splitter);
-  const { data: tokens } = useSplitterTokens(splitter);
+  const { data: tokens } = useSplitterTokens(splitter, extraToken);
   const { data: detail, isLoading: isLoadingDetail } = useMemberDetail(
     splitter, openMember, tokens,
   )
@@ -48,6 +52,11 @@ export default function SplitterPage() {
   const handleToggle = (member?: Address) => {
     setTouched(true)
     setOpenMember(member)
+  }
+
+  const addToken = (token: Address) => {
+    setExtraToken((current) =>
+      current.some((t) => t.toLowerCase() === token.toLowerCase()) ? current : [...current, token])
   }
 
   useEffect(() => {
@@ -74,6 +83,7 @@ export default function SplitterPage() {
             <p className="rounded-xl border border-rule bg-surface p-6 text-sm text-muted">
               No tokens received yet. Send any ERC-20 to the address above.
             </p>
+            <AddTokenInput onAdd={addToken} />
           </div>
         ) : activeToken ? (
           <div className="space-y-4">
@@ -83,7 +93,8 @@ export default function SplitterPage() {
                 tokens={tokens}
                 selected={activeToken.address}
                 onSelect={setToken}
-              />
+                />
+                <AddTokenInput onAdd={addToken} />
             </div>
             <div className="flex flex-col gap-2">
               <p className="text-xs text-muted">Members status :</p>
