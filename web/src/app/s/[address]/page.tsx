@@ -77,6 +77,7 @@ export default function SplitterPage() {
         <AllocationBar members={info.members} />
       </div>
       <div>
+        {/* TODO : refaire le message lorsqu'aucun token n'est détecté c'est un peu moche la */}
         {!tokens?.length ? (
           <div className="flex flex-col gap-1">
             <p className="text-xs text-muted">Splitter tokens :</p>

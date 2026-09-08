@@ -33,7 +33,9 @@ export function MemberFlowChart({
             <div className="h-full rounded-full" style={{ width: `${row.r * 100}%`, background: row.bg }} />
           </div>
 
-          {/* amount */}
+          {/* amount
+            //FIX : fix decimals printing
+            */}
           <span className="w-8 shrink-0 text-right font-mono text-[11px]">
             {formatAmount(row.value, decimals)}
           </span>

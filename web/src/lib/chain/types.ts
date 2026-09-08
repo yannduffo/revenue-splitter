@@ -7,6 +7,8 @@ export type Member = {
 
 export type Splitter = {
   address: Address
+  creator: Address
+  createdAtBlock: bigint
   members: Member[]     //sorted by decreasing sharedDistribution
 }
 
