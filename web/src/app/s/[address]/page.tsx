@@ -66,6 +66,7 @@ export default function SplitterPage() {
   if (!splitter) return <p className="p-8 text-muted">Not a valid address.</p>;
   if (!info) return <p className="p-8 text-muted">Loading…</p>;
 
+  //TODO : avant de rendre la page détail, il faudrait vérifier si le splitter est officiel (récupérable en intérrogeant "isOfficialSplitter" de lib/chain/factory.ts)
   return (
     <main className="flex flex-col mx-auto max-w-275 p-6 gap-4">
       <div className="flex gap-2 items-baseline">

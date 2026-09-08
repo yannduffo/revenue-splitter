@@ -38,7 +38,7 @@ export function useTx({
 
         if (receipt.status === 'reverted') {
           setStatus({ state: 'reverted', hash })
-          return hash
+          return receipt
         }
 
         setStatus({ state: 'success', hash });
@@ -57,7 +57,7 @@ export function useTx({
           setStatus((current) => current.state === 'success' && current.hash === hash ? {state: 'idle'} : current)
         }, 3000)
 
-        return hash
+        return receipt
 
       } catch (error) {
         // error state if writeContract call fail
