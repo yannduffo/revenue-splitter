@@ -4,6 +4,8 @@ import "./globals.css";
 
 import { Providers } from "@/lib/providers";
 import { ConnectButton } from "@/components/wallet/ConnectButton";
+import Link from "next/link";
+import Image from "next/image";
 
 export const metadata: Metadata = {
   title: "Revenue Splitter",
@@ -16,8 +18,15 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body>
         <Providers>
           <header className="border-b border-rule">
-            <div className="mx-auto flex max-w-275 items-center justify-between px-8 py-4">
-              <span className="text-sm">Revenue Splitter</span>
+            <div className="mx-auto flex items-center justify-between px-8 py-4">
+              <Link href={"/"}>
+                <Image
+                  src="/logo-text-spaced.svg"
+                  alt="Splittr"
+                  width={120}
+                  height={20}
+                />
+              </Link>
               <ConnectButton />
             </div>
           </header>
@@ -27,3 +36,5 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     </html>
   );
 }
+
+{/* <span className="text-sm">Revenue Splitter</span> */}

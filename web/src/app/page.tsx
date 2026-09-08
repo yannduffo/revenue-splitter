@@ -6,6 +6,7 @@ import { useSplitters } from '@/hooks/useSplitters'
 import { useConnectedMember } from '@/hooks/useConnectedMember'
 import { SplitterList } from '@/components/splitter/SplitterList'
 import { SearchBar } from '@/components/SearchBar'
+import Image from 'next/image'
 
 export default function Home() {
   const [search, setSearch] = useState('')
@@ -25,7 +26,15 @@ export default function Home() {
   return (
     <main className="mx-auto flex max-w-275 flex-col gap-8 p-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl">Splitters</h1>
+        <div className='flex gap-2'>
+          <Image
+            src="/logo-no-txt.svg"
+            alt="Logo"
+            width={38}
+            height={38}
+          />
+          <span className='text-2xl font-mono'>/ home </span>
+        </div>
         <Link
           href="/create"
           className="rounded-lg bg-accent px-3 py-1.5 text-sm text-paper"

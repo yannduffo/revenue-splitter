@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { useParams } from "next/navigation";
+import Image from "next/image";
 import { isAddress, type Address } from "viem";
 //hooks
 import { useSplitter } from "@/hooks/useSplitter";
@@ -70,8 +71,16 @@ export default function SplitterPage() {
   return (
     <main className="flex flex-col mx-auto max-w-275 p-6 gap-4">
       <div className="flex gap-2 items-baseline">
-        <p className="text-md text-muted">Splitter</p>
-        <p className="font-mono text-xl">{splitter}</p>
+        <div className='flex gap-2'>
+          <Image
+            src="/logo-no-txt.svg"
+            alt="Logo"
+            width={38}
+            height={38}
+          />
+          <span className='text-2xl font-mono'>/ splitter / </span>
+          <span className="font-mono text-2xl">{splitter}</span>
+        </div>
       </div>
       <div className="flex flex-col gap-2">
         <p className="text-xs text-muted">Shares distribution : </p>

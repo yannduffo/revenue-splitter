@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Plus, Info } from "lucide-react";
 import { useConnectedMember } from "@/hooks/useConnectedMember";
 import { useCreateSplitter } from "@/hooks/useCreateSplitter";
@@ -70,9 +71,17 @@ export default function CreatePage() {
   //TODO : rendre la liste trop longue scrollable sur les membres pour que ça soit plus propre
   return (
     <main className="mx-auto flex max-w-275 flex-col gap-4 p-8">
-      <div>
-        <h1 className="text-2xl">New splitter</h1>
-        <p className="mt-1 text-sm text-muted">
+      <div className="flex flex-col gap-4">
+        <div className='flex gap-2'>
+          <Image
+            src="/logo-no-txt.svg"
+            alt="Logo"
+            width={38}
+            height={38}
+          />
+          <span className='text-2xl font-mono'>/ create </span>
+        </div>
+        <p className="text-md text-muted">
           Define who receives what. Shares are permanent : they can never be
           changed once created.
         </p>
