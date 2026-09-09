@@ -16,6 +16,7 @@ import { AllocationBar } from "@/components/splitter/AllocationBar";
 import { TokenSelector } from "@/components/splitter/TokenSelector";
 import { AddTokenInput } from "@/components/splitter/AddTokenInput";
 import { MemberGrid } from "@/components/splitter/MemberGrid";
+import { useSplitterBlock } from "@/hooks/useSplitterBlock";
 
 export default function SplitterPage() {
   const params = useParams<{ address: string }>();
@@ -30,12 +31,15 @@ export default function SplitterPage() {
   const [touched, setTouched] = useState(false) //flag to auto-open member's card only the 1st time
 
   const { data: info } = useSplitter(splitter);
-  const { data: tokens } = useSplitterTokens(splitter, extraToken);
+  const { data: fromBlock } = useSplitterBlock(splitter);
+
+  const { data: tokens } = useSplitterTokens(splitter, extraToken, fromBlock);
   const { data: detail, isLoading: isLoadingDetail } = useMemberDetail(
-    splitter, openMember, tokens,
+    splitter, openMember, tokens, fromBlock
   )
 
-  useInvalidateOnBlock(["splitter-tokens", "token-balances", "member-detail"]);
+  //only using 'token-balances' and 'member-detail' keys because 'splitter-tokens' key would "overcall" getlogs calls
+  useInvalidateOnBlock(["token-balances", "member-detail"]);
 
   const activeToken = useMemo(
     () => tokens?.find((t) => t.address === token) ?? tokens?.[0],
@@ -46,9 +50,10 @@ export default function SplitterPage() {
     splitter,
     activeToken?.address,
     info?.members,
+    fromBlock
   );
 
-  const {address: connectedAddress, isMember} = useConnectedMember(info?.members)
+  const {address: connectedAddress, isMember, canAct} = useConnectedMember(info?.members)
 
   const handleToggle = (member?: Address) => {
     setTouched(true)
@@ -118,6 +123,7 @@ export default function SplitterPage() {
                 detail={detail}
                 isLoadingDetail={isLoadingDetail}
                 connectedAddress={connectedAddress}
+                canAct={canAct}
               />
             </div>
           </div>

@@ -1,16 +1,20 @@
 import { createConfig, http, cookieStorage, createStorage } from "wagmi";
-import { foundry } from "viem/chains";
+import { foundry, sepolia } from "viem/chains";
 import { injected } from "wagmi";
 
-//internaly used by wagmi to configure it's viem client
+export const TARGET_CHAIN = process.env.NEXT_PUBLIC_CHAIN === 'anvil' ? foundry : sepolia
+
+// we are keeping both anvil and sepolia config to be able to continue the
+// dApp development easily
 export const config = createConfig({
-  chains: [foundry],
-  connectors: [injected()], //injected wallets (Metamask, ...)
+  chains: [sepolia, foundry],
+  connectors: [injected()],
   transports: {
-    [foundry.id]: http('http://127.0.0.1:8545', { batch: true }), //enableling RPC batching
+    [sepolia.id]: http('https://ethereum-sepolia-rpc.publicnode.com', {batch: true}), //viem tries multicall3 when its possible
+    [foundry.id]: http('http://127.0.0.1:8545', {batch: true}),
   },
   ssr: true,
-  storage: createStorage({storage : cookieStorage}),
+  storage: createStorage({storage: cookieStorage})
 })
 
 declare module 'wagmi' {

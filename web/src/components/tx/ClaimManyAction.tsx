@@ -5,16 +5,17 @@ import { useClaimMany } from '@/hooks/useClaimMany'
 import { TxButton } from '@/components/tx/TxButton'
 
 export function ClaimManyAction({
-  splitter, tokens, account,
+  splitter, tokens, account, canAct
 }: {
   splitter: Address
   tokens: Address[]
   account: Address
+  canAct?:boolean
 }) {
   const { claimMany, status, batch, reset } = useClaimMany({ splitter, tokens, account })
 
   //if there arn't more than 1 token to claim, the button desapear
-  if (tokens.length < 2) return null
+  if (!canAct || tokens.length < 2) return null
 
   return (
     <div className="flex flex-col items-end gap-1">

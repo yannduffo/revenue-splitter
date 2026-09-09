@@ -1,6 +1,7 @@
 import { parseAbiItem, erc20Abi, type Address, type PublicClient } from "viem";
 import { splitterAbi } from "@/lib/generated";
 import type { SplitterToken } from "./types";
+import { useSplitterBlock } from "@/hooks/useSplitterBlock";
 
 //building our own "event Abi" so we don't need to import it
 const transferEvent = parseAbiItem("event Transfer(address indexed from, address indexed to, uint256 value)")
@@ -41,11 +42,12 @@ export async function getSplitterTokens(
 export async function discoverTokens(
   client: PublicClient,
   splitter: Address,
+  blockheigth : bigint
 ): Promise<Address[]>{
   const logs = await client.getLogs({
     event: transferEvent,
     args: { to: splitter },
-    fromBlock: 0n, //TODO : set to blockid of splitter creation
+    fromBlock: blockheigth,
     toBlock: 'latest'
   })
 

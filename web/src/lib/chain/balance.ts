@@ -19,6 +19,7 @@ export async function getTokenBalances(
   splitter: Address,
   token: Address,
   members: Member[],
+  fromBlock: bigint
 ): Promise<MemberBalance[]> {
   const [pendings, logs] = await Promise.all([
     Promise.all(
@@ -31,8 +32,12 @@ export async function getTokenBalances(
         })
       )
     ),
-    //TODO Sepolia: fromBlock = splitter creation bloc heigth
-    client.getLogs({address: splitter, event: claimedEvent, args: {token}, fromBlock: 0n}) //args: {token} filter on indexed parameters
+    client.getLogs({
+      address: splitter,
+      event: claimedEvent,
+      args: { token },
+      fromBlock: fromBlock
+    }) //args: {token} filter on indexed parameters
   ])
 
   const claimedBy = new Map<string, bigint>()
@@ -54,6 +59,7 @@ export async function getMemberDetail(
   splitter: Address,
   member: Address,
   tokens: SplitterToken[],
+  fromBlock: bigint
 ): Promise<MemberTokenRow[]> {
   const [pendings, logs] = await Promise.all([
     Promise.all(
@@ -66,7 +72,12 @@ export async function getMemberDetail(
         }),
       ),
     ),
-    client.getLogs({ address: splitter, event: claimedEvent, args: { member }, fromBlock: 0n }),
+    client.getLogs({
+      address: splitter,
+      event: claimedEvent,
+      args: { member },
+      fromBlock: fromBlock
+    }),
   ])
 
   const claimedByToken = new Map<string, bigint>()

@@ -53,3 +53,19 @@ export async function isOfficialSplitter(
     args: [address]
   })
 }
+
+//getting the splitter block creating heigth to optimise futur logs exploration
+export async function getSplitterBlock(
+  client: PublicClient,
+  splitter: Address,
+): Promise<bigint> {
+  const logs = await client.getLogs({
+    address: FACTORY_ADDRESS,
+    event: createdEvent,
+    args: { splitter }, //splitter address is indexed on createdEvent
+    fromBlock: FACTORY_BLOCK,
+    toBlock: 'latest',
+  })
+
+  return logs[0]?.blockNumber ?? FACTORY_BLOCK
+}

@@ -4,7 +4,7 @@ import type { Address } from "viem";
 import { MemberCard } from "./MemberCard";
 
 export function MemberGrid({
-  splitter, members, balances, token, openMember, onToggle, detail, isLoadingDetail, connectedAddress
+  splitter, members, balances, token, openMember, onToggle, detail, isLoadingDetail, connectedAddress, canAct
 }: {
   splitter: Address
   members: Member[]
@@ -15,6 +15,7 @@ export function MemberGrid({
   detail?: MemberTokenRow[]
   isLoadingDetail?: boolean
   connectedAddress?: Address
+  canAct:boolean
   }) {
   return (
     <div className="grid gap-3 grid-cols-3">
@@ -36,6 +37,7 @@ export function MemberGrid({
             isConnected = {connectedAddress?.toLowerCase() === member.address.toLowerCase()}
             detail={isOpen ? detail : undefined}
             isLoadingDetail={isOpen && isLoadingDetail}
+            canAct = {canAct}
           />
         )
       })}

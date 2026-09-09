@@ -26,6 +26,7 @@ export function MemberCard({
   isConnected,
   detail,
   isLoadingDetail,
+  canAct
 }: {
   splitter: Address;
   member: Member;
@@ -38,8 +39,10 @@ export function MemberCard({
   isConnected?: boolean;
   detail?: MemberTokenRow[];
   isLoadingDetail?: boolean;
+  canAct:boolean
 }) {
   //TODO : ajouter une icone pour fermer la grande card plutot que le clic sur l'entête
+  //TODO : retravailler l'animation ouverture/fermeture de la card (+ déplacemetn par rapport aux autres card de la grid)
   return (
     <div
       className={`w-full rounded-xl border-x border-b border-rule bg-surface p-3 ${isOpen ? "col-span-full" : ""}`}
@@ -107,6 +110,7 @@ export function MemberCard({
                     token={row.token}
                     account={member.address}
                     pending={row.pending}
+                    canAct={canAct}
                   />
                 )}
               </div>
@@ -121,6 +125,7 @@ export function MemberCard({
                 tokens={detail
                   .filter((r) => r.pending > 0n)
                   .map((r) => r.token)}
+                canAct={canAct}
               />
             </div>
           )}
