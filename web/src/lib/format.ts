@@ -33,3 +33,12 @@ export function ratio(numerator: bigint, denominator: bigint): number {
   if (denominator === 0n) return 0
   return Number((numerator * 10_000n) / denominator) / 10_000
 }
+
+// used to create the batches for claimMany calls that exceeds the limit
+export function chunk<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = []
+  for (let i = 0; i < items.length; i += size) {
+    chunks.push(items.slice(i, i+size))
+  }
+  return chunks
+}

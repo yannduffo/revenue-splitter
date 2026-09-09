@@ -5,6 +5,8 @@ import { isAddress, type Address } from 'viem'
 import { usePublicClient } from 'wagmi'
 import { isErc20 } from '@/lib/chain/tokens'
 
+//TODO : refaire le style de l'ajout manuel de token :
+// il doit être plus discret car la foncitonnalité ne devrait pas être très utilisée
 export function AddTokenInput({ onAdd }: { onAdd: (token: Address) => void }) {
   const client = usePublicClient()
   const [value, setValue] = useState('')

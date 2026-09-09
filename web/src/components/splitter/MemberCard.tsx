@@ -1,37 +1,48 @@
-'use client'
+"use client";
 
-import { Address } from 'viem'
+import { Address } from "viem";
 
 //lib/
-import {formatBps, shareTone, shortenAddress } from '@/lib/format'
-import type { Member, MemberBalance, SplitterToken } from '@/lib/chain/types'
-import type { MemberTokenRow } from '@/lib/chain/balance'
+import { formatBps, shareTone, shortenAddress } from "@/lib/format";
+import type { Member, MemberBalance, SplitterToken } from "@/lib/chain/types";
+import type { MemberTokenRow } from "@/lib/chain/balance";
 
 //components/
-import { MemberFlowChart } from './MemberFlowChart'
-import { ClaimAction } from './ClaimAction'
+import { MemberFlowChart } from "./MemberFlowChart";
+import { ClaimAction } from "../tx/ClaimAction";
+import { ClaimManyAction } from "../tx/ClaimManyAction";
 
-import { User } from 'lucide-react'
+import { User } from "lucide-react";
 
 export function MemberCard({
-  splitter, member, index, total, balance, token, isOpen, onToggle, isConnected, detail, isLoadingDetail,
+  splitter,
+  member,
+  index,
+  total,
+  balance,
+  token,
+  isOpen,
+  onToggle,
+  isConnected,
+  detail,
+  isLoadingDetail,
 }: {
-  splitter: Address
-  member: Member
-  index: number
-  total: number
-  balance?: MemberBalance
-  token: SplitterToken
-  isOpen: boolean
-  onToggle: () => void
-  isConnected?: boolean
-  detail?: MemberTokenRow[]
-  isLoadingDetail?: boolean
-  }) {
+  splitter: Address;
+  member: Member;
+  index: number;
+  total: number;
+  balance?: MemberBalance;
+  token: SplitterToken;
+  isOpen: boolean;
+  onToggle: () => void;
+  isConnected?: boolean;
+  detail?: MemberTokenRow[];
+  isLoadingDetail?: boolean;
+}) {
   //TODO : ajouter une icone pour fermer la grande card plutot que le clic sur l'entête
   return (
     <div
-      className={`w-full rounded-xl border-x border-b border-rule bg-surface p-3 ${isOpen ? 'col-span-full' : ''}`}
+      className={`w-full rounded-xl border-x border-b border-rule bg-surface p-3 ${isOpen ? "col-span-full" : ""}`}
       style={{ borderTop: `2px solid ${shareTone(index, total).bg}` }}
     >
       <button
@@ -46,10 +57,14 @@ export function MemberCard({
               <User size={16} />
               {shortenAddress(member.address)}
               {isConnected && (
-                <span className="self-center rounded bg-accent px-1.5 py-0.5 text-[10px] text-paper">you</span>
+                <span className="self-center rounded bg-accent px-1.5 py-0.5 text-[10px] text-paper">
+                  you
+                </span>
               )}
             </span>
-            <span className="text-xs text-muted">{formatBps(member.shareBps)}</span>
+            <span className="text-xs text-muted">
+              {formatBps(member.shareBps)}
+            </span>
           </div>
 
           {!isOpen && (
@@ -65,7 +80,9 @@ export function MemberCard({
 
       {isOpen && (
         <div className="mt-4 border-t border-rule">
-          {isLoadingDetail && <p className="text-sm text-muted pt-3">Loading…</p>}
+          {isLoadingDetail && (
+            <p className="text-sm text-muted pt-3">Loading…</p>
+          )}
 
           {detail?.map((row) => {
             return (
@@ -73,7 +90,9 @@ export function MemberCard({
                 key={row.token}
                 className="flex gap-3 border-b border-rule py-2 last:border-0"
               >
-                <span className="w-12 shrink-0 font-mono text-sm">{row.symbol}</span>
+                <span className="w-12 shrink-0 font-mono text-sm">
+                  {row.symbol}
+                </span>
                 <div className="min-w-0 flex-1">
                   <MemberFlowChart
                     pending={row.pending ?? 0n}
@@ -83,13 +102,30 @@ export function MemberCard({
                   />
                 </div>
                 {isConnected && (
-                  <ClaimAction splitter={splitter} token={row.token} account={member.address} pending={row.pending} />
+                  <ClaimAction
+                    splitter={splitter}
+                    token={row.token}
+                    account={member.address}
+                    pending={row.pending}
+                  />
                 )}
               </div>
-            )
+            );
           })}
+
+          {isConnected && detail && (
+            <div className="flex justify-end pt-3">
+              <ClaimManyAction
+                splitter={splitter}
+                account={member.address}
+                tokens={detail
+                  .filter((r) => r.pending > 0n)
+                  .map((r) => r.token)}
+              />
+            </div>
+          )}
         </div>
       )}
     </div>
-  )
+  );
 }
