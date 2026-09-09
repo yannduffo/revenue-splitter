@@ -17,3 +17,8 @@ deploy-sepolia:
 	forge script script/DeploySplitterFactory.s.sol \
 	--rpc-url $(SEPOLIA_RPC_URL) --account $(ACCOUNT) --broadcast \
 	--verify --etherscan-api-key $(ETHERSCAN_API_KEY) -vvvv
+
+deploy-demo-tokens:
+	forge script script/DeployDemoTokens.s.sol \
+	--rpc-url $(SEPOLIA_RPC_URL) --account $(ACCOUNT) --broadcast \
+	--verify --etherscan-api-key $(ETHERSCAN_API_KEY) -vvvv
