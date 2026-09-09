@@ -6,7 +6,7 @@ import {SplitterFactory} from "../src/SplitterFactory.sol";
 import {HelperConfig} from "./HelperConfig.s.sol";
 
 contract DeploySplitterFactory is Script {
-    function run() public returns(SplitterFactory, HelperConfig){
+    function run() public returns (SplitterFactory, HelperConfig) {
         SplitterFactory factory;
         HelperConfig helperConfig;
 
@@ -19,6 +19,6 @@ contract DeploySplitterFactory is Script {
         console.log("Factory address : ", address(factory));
         console.log("Implementation addresss", address(factory.implementation()));
 
-        return(factory,helperConfig);
+        return (factory, helperConfig);
     }
 }

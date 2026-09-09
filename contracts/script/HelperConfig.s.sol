@@ -13,7 +13,7 @@ contract HelperConfig is Script {
     NetworkConfig public activeNetworkConfig;
 
     constructor() {
-        if(block.chainid == 11155111){
+        if (block.chainid == 11155111) {
             activeNetworkConfig = getSepoliaConfig();
         } else {
             //Anvil chainid = 31337
@@ -21,19 +21,16 @@ contract HelperConfig is Script {
         }
     }
 
-    function getSepoliaConfig() public pure returns(NetworkConfig memory){
-        address token1 = address(0); //TODO
-        address token2 = address(0); //TODO
+    function getSepoliaConfig() public pure returns (NetworkConfig memory) {
+        address token1 = 0x7B67f6672Da8a852CC82e1322DD1b306B47E1a1b; //mockERC20 18 decimals deployed on Sepolia (dEUR)
+        address token2 = 0x40FAB6b0998888EcFdd7a13FbEa81718aFfD7c0f; //mockERC20 18 decimals deployed on Sepolia (dUSD)
 
-        return NetworkConfig({
-            token1: token1,
-            token2: token2
-        });
+        return NetworkConfig({token1: token1, token2: token2});
     }
 
-    function getOrCreateAnvilConfig() public returns(NetworkConfig memory){
+    function getOrCreateAnvilConfig() public returns (NetworkConfig memory) {
         //check if network is already configured :
-        if(activeNetworkConfig.token1 != address(0)) return activeNetworkConfig;
+        if (activeNetworkConfig.token1 != address(0)) return activeNetworkConfig;
 
         //if activeNetworkConfig is empty we create the configuration :
         vm.startBroadcast();
@@ -44,13 +41,10 @@ contract HelperConfig is Script {
         console.log("mockToken1 address : ", address(mockToken1));
         console.log("mockToken2 address : ", address(mockToken2));
 
-        return NetworkConfig({
-            token1 : address(mockToken1),
-            token2: address(mockToken2)
-        });
+        return NetworkConfig({token1: address(mockToken1), token2: address(mockToken2)});
     }
 
-    function getConfig() public view returns(NetworkConfig memory){
+    function getConfig() public view returns (NetworkConfig memory) {
         return activeNetworkConfig;
     }
 }

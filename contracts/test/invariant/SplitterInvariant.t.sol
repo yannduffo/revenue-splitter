@@ -5,6 +5,7 @@ import {Test, console} from "forge-std/Test.sol";
 import {Handler} from "./Handler.t.sol";
 
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
+import {ERC20DecimalsMock} from "../mocks/ERC20DecimalsMock.sol";
 
 import {Splitter} from "../../src/Splitter.sol";
 import {SplitterFactory} from "../../src/SplitterFactory.sol";
@@ -23,13 +24,13 @@ contract SplitterInvariantTest is Test {
     uint256 constant SHARES_USER5 = 1_000;
     uint256 constant TOTAL_SHARES = 10_000;
     address[] members = [user, user2, user3, user4, user5];
-    uint256[] shareDistribution = [SHARES_USER, SHARES_USER2,  SHARES_USER3,  SHARES_USER4,  SHARES_USER5];
+    uint256[] shareDistribution = [SHARES_USER, SHARES_USER2, SHARES_USER3, SHARES_USER4, SHARES_USER5];
 
     SplitterFactory factory;
     Handler handler;
     address splitter;
     ERC20Mock token1;
-    ERC20Mock token2;
+    ERC20DecimalsMock token2;
     address[] tokens;
 
     //invariants states varaibles
@@ -43,7 +44,7 @@ contract SplitterInvariantTest is Test {
         splitter = SplitterFactory(factory).createSplitter(members, shareDistribution);
 
         token1 = new ERC20Mock();
-        token2 = new ERC20Mock();
+        token2 = new ERC20DecimalsMock(6);
 
         tokens.push(address(token1));
         tokens.push(address(token2));
@@ -62,8 +63,16 @@ contract SplitterInvariantTest is Test {
 
     //foundry hook executed one time after all invartiant test are executed
     function afterInvariant() public view {
-        console.log("Number of claim() call that actually claim (pending != 0) : ", handler.ghost_claimCount(), " sur environ 166 appels");
-        console.log("Number of claimMany() call that actually claim (pending on at least 1 token != 0) : ", handler.ghost_claimManyCount(), " sur environ 166 appels");
+        console.log(
+            "Number of claim() call that actually claim (pending != 0) : ",
+            handler.ghost_claimCount(),
+            " sur environ 166 appels"
+        );
+        console.log(
+            "Number of claimMany() call that actually claim (pending on at least 1 token != 0) : ",
+            handler.ghost_claimManyCount(),
+            " sur environ 166 appels"
+        );
     }
 
     // corresponding to INV-1 from SPEC.md
@@ -71,7 +80,7 @@ contract SplitterInvariantTest is Test {
         address[] memory splitterMembers = Splitter(splitter).getMembers();
         uint256 sharesSum;
 
-        for(uint256 i=0; i < splitterMembers.length; i++){
+        for (uint256 i = 0; i < splitterMembers.length; i++) {
             sharesSum += Splitter(splitter).getMemberShares(splitterMembers[i]);
         }
 
@@ -81,7 +90,7 @@ contract SplitterInvariantTest is Test {
     // for INV-5
     // Should check that the internal accumulating counters never decrease
     function invariant_monotonicity() public {
-        for(uint256 i=0; i < tokens.length; i++){
+        for (uint256 i = 0; i < tokens.length; i++) {
             address token = tokens[i];
 
             uint256 currentAccPerShare = Splitter(splitter).getAccPerShare(token);
@@ -105,8 +114,8 @@ contract SplitterInvariantTest is Test {
     function invariant_solvability() public view {
         uint256 sumPendingForOneToken;
 
-        for(uint256 i=0; i<tokens.length; i++){
-            for(uint256 j=0; j<members.length; j++){
+        for (uint256 i = 0; i < tokens.length; i++) {
+            for (uint256 j = 0; j < members.length; j++) {
                 sumPendingForOneToken += Splitter(splitter).pending(tokens[i], members[j]);
             }
             assertGe(ERC20Mock(tokens[i]).balanceOf(address(splitter)), sumPendingForOneToken);

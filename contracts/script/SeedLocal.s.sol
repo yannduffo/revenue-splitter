@@ -105,7 +105,10 @@ contract SeedLocal is Script {
         _logSummary(factory, config, splitter1, splitter2, tokens);
     }
 
-    function _createDemoSplitter(SplitterFactory factory, address[] memory members, uint256[] memory shareDistribution) internal returns(address splitter){
+    function _createDemoSplitter(SplitterFactory factory, address[] memory members, uint256[] memory shareDistribution)
+        internal
+        returns (address splitter)
+    {
         splitter = factory.createSplitter(members, shareDistribution);
     }
 

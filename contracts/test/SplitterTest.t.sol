@@ -3,17 +3,17 @@ pragma solidity ^0.8.35;
 
 import {Test} from "forge-std/Test.sol";
 import {Splitter} from "../src/Splitter.sol";
+import {ERC20DecimalsMock} from "./mocks/ERC20DecimalsMock.sol";
 
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
-
-// TODO Faire des tests avec un token ERC20 qui n'a pas 18 décimales
 
 contract SplitterTest is Test {
     Splitter implementation;
     address splitterClone;
     ERC20Mock token;
-    ERC20Mock token2;
+    //ERC20Mock token2;
+    ERC20DecimalsMock token2;
 
     address user = makeAddr("user");
     address user2 = makeAddr("user2");
@@ -39,7 +39,8 @@ contract SplitterTest is Test {
 
         //token contract creation + minting to user
         token = new ERC20Mock();
-        token2 = new ERC20Mock();
+        //token2 = new ERC20Mock();
+        token2 = new ERC20DecimalsMock(6); //new 6 decimals token
         token.mint(user, INITIAL_BALANCE);
         token.mint(user2, INITIAL_BALANCE);
         token.mint(user3, INITIAL_BALANCE);
@@ -176,6 +177,22 @@ contract SplitterTest is Test {
         assertEq(token.balanceOf(splitterClone), 4 ether); //10 - 6
         // vérifier le pending de user est 0 après le claim
         assertEq(Splitter(splitterClone).pending(address(token), address(user)), 0);
+    }
+
+    function testSimpleClaimWithA6DecimalsToken() public {
+        // depot
+        vm.prank(user3);
+        token2.transfer(address(splitterClone), BASE_DEPOSIT);
+
+        //claim from user
+        vm.prank(user);
+        Splitter(splitterClone).claim(address(token2));
+
+        assertEq(token2.balanceOf(user), 6 ether);
+        // vérfier la balance du contrat
+        assertEq(token2.balanceOf(splitterClone), 4 ether); //10 - 6
+        // vérifier le pending de user est 0 après le claim
+        assertEq(Splitter(splitterClone).pending(address(token2), address(user)), 0);
     }
 
     function testClaimWithNonDivisibleAmountAsDeposit() public {
@@ -416,6 +433,28 @@ contract SplitterTest is Test {
 
         // two deposits then one claim must pay the same as one deposit of the sum
         assertEq(fromTwoDeposits, fromOneDeposit);
+    }
+
+    // --- decimals tokens ---
+    function testFuzzClaimIsIndependentOfTokenDecimals(uint8 decimals_) public {
+        decimals_ = uint8(bound(decimals_, 0, 18));
+
+        ERC20DecimalsMock variableToken = new ERC20DecimalsMock(decimals_);
+
+        uint256 unit = 10 ** uint256(decimals_);
+        uint256 deposit = 10 * unit;
+
+        variableToken.mint(user3, deposit);
+
+        vm.prank(user3);
+        variableToken.transfer(splitterClone, deposit);
+
+        vm.prank(user);
+        Splitter(splitterClone).claim(address(variableToken));
+
+        assertEq(variableToken.balanceOf(user), 6 * unit);
+
+        assertEq(variableToken.balanceOf(splitterClone), 4 * unit);
     }
 
     // ------------------------------------------- helpers ----------------------------------------------

@@ -241,15 +241,15 @@ contract Splitter is ReentrancyGuard {
         return shares[member];
     }
 
-    function getAccPerShare(address token) external view returns(uint256) {
+    function getAccPerShare(address token) external view returns (uint256) {
         return accPerShare[token];
     }
 
-    function getTotalAttributed(address token) external view returns(uint256){
+    function getTotalAttributed(address token) external view returns (uint256) {
         return totalAttributed[token];
     }
 
-    function getTotalClaimed(address token) external view returns(uint256){
+    function getTotalClaimed(address token) external view returns (uint256) {
         return totalClaimed[token];
     }
 }
