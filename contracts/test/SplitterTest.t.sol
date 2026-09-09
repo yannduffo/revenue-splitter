@@ -23,8 +23,13 @@ contract SplitterTest is Test {
     uint256 constant SHARES_USER = 6_000;
     uint256 constant SHARES_USER2 = 4_000;
     uint256 constant TOTAL_SHARES = 10_000;
+
+    // for the 6 decimals token, INITIAL_BALANCE & BASE_DEPOSIT
+    // are not really "at scale" but we just want to verify the aritmetic
+    // (dust managment is definied in @SPEC.md and is not the main purpose here)
     uint256 constant INITIAL_BALANCE = 100 ether;
     uint256 constant BASE_DEPOSIT = 10 ether;
+
     address[] members = [user, user2];
     uint256[] shareDistribution = [SHARES_USER, SHARES_USER2];
 

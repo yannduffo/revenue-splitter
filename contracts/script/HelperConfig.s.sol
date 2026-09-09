@@ -23,7 +23,7 @@ contract HelperConfig is Script {
 
     function getSepoliaConfig() public pure returns (NetworkConfig memory) {
         address token1 = 0x7B67f6672Da8a852CC82e1322DD1b306B47E1a1b; //mockERC20 18 decimals deployed on Sepolia (dEUR)
-        address token2 = 0x40FAB6b0998888EcFdd7a13FbEa81718aFfD7c0f; //mockERC20 18 decimals deployed on Sepolia (dUSD)
+        address token2 = 0x40FAB6b0998888EcFdd7a13FbEa81718aFfD7c0f; //mockERC20 6 decimals deployed on Sepolia (dUSD)
 
         return NetworkConfig({token1: token1, token2: token2});
     }
