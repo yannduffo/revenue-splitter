@@ -7,7 +7,7 @@ export const TARGET_CHAIN = process.env.NEXT_PUBLIC_CHAIN === 'anvil' ? foundry 
 // we are keeping both anvil and sepolia config to be able to continue the
 // dApp development easily
 export const config = createConfig({
-  chains: [sepolia, foundry],
+  chains: TARGET_CHAIN === foundry ? [foundry, sepolia] : [sepolia, foundry],
   connectors: [injected()], //TODO: add walletConnect for mobile users (low priority)
   transports: {
     [sepolia.id]: http('/api/rpc', {batch: true}), //viem tries multicall3 when its possible
