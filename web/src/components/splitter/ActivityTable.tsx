@@ -47,7 +47,7 @@ export function ActivityTable({
         <span className="text-right">Date</span>
       </div>
 
-      <div className='max-h-90 overflow-y-auto'>
+      <div className='max-h-85 overflow-y-auto'>
         {isLoading ? (
           <p className="p-6 text-sm text-muted">Loading…</p>
         ) : !entries?.length ? (

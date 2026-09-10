@@ -1,21 +1,22 @@
 "use client";
 
-import { Address } from "viem";
+import type { CSSProperties } from "react";
 
 //lib/
 import { formatBps, shareTone, shortenAddress } from "@/lib/format";
 import type { Member, MemberBalance, SplitterToken } from "@/lib/chain/types";
-import type { MemberTokenRow } from "@/lib/chain/balance";
 
 //components/
 import { MemberFlowChart } from "./MemberFlowChart";
-import { ClaimAction } from "../../tx/ClaimAction";
-import { ClaimManyAction } from "../../tx/ClaimManyAction";
 
-import { User } from "lucide-react";
+import { User, ChevronDown } from "lucide-react";
 
+// Carte compacte : elle ne change pas de place quand on l'ouvre.
+// La carte entière est le bouton de bascule ; le chevron n'est qu'un indicateur.
+// État sélectionné = contour shareTone + fond légèrement teinté + léger agrandissement.
+// Le scale ne joue que sur le transform, donc il ne pousse aucune carte voisine :
+// il déborde dans le gap de la grille, d'où le z-10 pour passer par-dessus.
 export function MemberCard({
-  splitter,
   member,
   index,
   total,
@@ -24,11 +25,7 @@ export function MemberCard({
   isOpen,
   onToggle,
   isConnected,
-  detail,
-  isLoadingDetail,
-  canAct
 }: {
-  splitter: Address;
   member: Member;
   index: number;
   total: number;
@@ -37,100 +34,51 @@ export function MemberCard({
   isOpen: boolean;
   onToggle: () => void;
   isConnected?: boolean;
-  detail?: MemberTokenRow[];
-  isLoadingDetail?: boolean;
-  canAct:boolean
 }) {
-  //TODO : ajouter une icone pour fermer la grande card plutot que le clic sur l'entête
-  //TODO : retravailler l'animation ouverture/fermeture de la card (+ déplacemetn par rapport aux autres card de la grid)
   return (
-    <div
-      className={`w-full rounded-xl border-x border-b border-rule bg-surface p-3 ${isOpen ? "col-span-full" : ""}`}
-      style={{ borderTop: `2px solid ${shareTone(index, total).bg}` }}
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={isOpen}
+      //border-2 i every state so hover doesn't move the card
+      style={{ "--tone": shareTone(index, total).bg } as CSSProperties}
+      className={`relative w-full cursor-pointer rounded-xl border-2 p-3 text-left transition-[transform,background-color,border-color,box-shadow] duration-200 ease-out ${
+        isOpen
+          ? "z-10 scale-[1.02] border-[var(--tone)] bg-[#F1F8F5] shadow-md"
+          : "border-rule border-t-[var(--tone)] bg-surface hover:border-[var(--tone)]"
+      }`}
     >
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-expanded={isOpen}
-        className="block w-full text-left"
-      >
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between">
-            <span className="flex gap-1 font-mono text-xs text-muted">
-              <User size={16} />
-              {shortenAddress(member.address)}
-              {isConnected && (
-                <span className="self-center rounded bg-accent px-1.5 py-0.5 text-[10px] text-paper">
-                  you
-                </span>
-              )}
-            </span>
-            <span className="text-xs text-muted">
-              {formatBps(member.shareBps)}
-            </span>
-          </div>
+      <div className="flex flex-col gap-2">
+        <div className="flex items-start justify-between gap-2">
+          <span className="flex items-center gap-1.5 font-mono text-xs text-muted">
+            <User size={16} />
+            {shortenAddress(member.address)}
+            <span className="text-rule">•</span>
+            {formatBps(member.shareBps)}
+            {isConnected && (
+              <span className="rounded bg-accent px-1.5 py-0.5 text-[10px] text-paper">
+                you
+              </span>
+            )}
+          </span>
 
-          {!isOpen && (
-            <MemberFlowChart
-              pending={balance?.pending ?? 0n}
-              claimed={balance?.claimed ?? 0n}
-              decimals={token.decimals}
-              symbol={token.symbol}
-            />
-          )}
+          <span
+            aria-hidden="true"
+            className={`shrink-0 transition-transform duration-300 ease-out ${
+              isOpen ? "rotate-180 text-[var(--tone)]" : "text-muted"
+            }`}
+          >
+            <ChevronDown size={16} />
+          </span>
         </div>
-      </button>
 
-      {isOpen && (
-        <div className="mt-4 border-t border-rule">
-          {isLoadingDetail && (
-            <p className="text-sm text-muted pt-3">Loading…</p>
-          )}
-
-          {detail?.map((row) => {
-            return (
-              <div
-                key={row.token}
-                className="flex gap-3 border-b border-rule py-2 last:border-0"
-              >
-                <span className="w-12 shrink-0 font-mono text-sm">
-                  {row.symbol}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <MemberFlowChart
-                    pending={row.pending ?? 0n}
-                    claimed={row.claimed ?? 0n}
-                    decimals={row.decimals}
-                    symbol={row.symbol}
-                  />
-                </div>
-                {isConnected && (
-                  <ClaimAction
-                    splitter={splitter}
-                    token={row.token}
-                    account={member.address}
-                    pending={row.pending}
-                    canAct={canAct}
-                  />
-                )}
-              </div>
-            );
-          })}
-
-          {isConnected && detail && (
-            <div className="flex justify-end pt-3">
-              <ClaimManyAction
-                splitter={splitter}
-                account={member.address}
-                tokens={detail
-                  .filter((r) => r.pending > 0n)
-                  .map((r) => r.token)}
-                canAct={canAct}
-              />
-            </div>
-          )}
-        </div>
-      )}
-    </div>
+        <MemberFlowChart
+          pending={balance?.pending ?? 0n}
+          claimed={balance?.claimed ?? 0n}
+          decimals={token.decimals}
+          symbol={token.symbol}
+        />
+      </div>
+    </button>
   );
 }
