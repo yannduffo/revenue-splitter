@@ -7,10 +7,9 @@ import { shortenAddress } from "@/lib/format";
 
 export function ConnectButton() {
   const mounted = useMounted()
-  const { address, isConnected } = useAccount();
+  const { address, isConnected, chainId } = useAccount();
   const { connectors, mutate: connect, isPending: isConnecting } = useConnect();
   const { mutate: disconnect } = useDisconnect();
-  const chainId = useChainId()
   const { mutate: switchChain, isPending: isSwitching } = useSwitchChain(); //en wagmi v3 useSwitchChain expose mes état standard d'une TanStack Query
 
   //to ensure connectedState matching between server and browser

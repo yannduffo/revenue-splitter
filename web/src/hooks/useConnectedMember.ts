@@ -1,14 +1,13 @@
 'use client'
 
-import { useAccount, useChainId } from "wagmi"
+import { useAccount} from "wagmi"
 import { useMounted } from "./useMounted"
 import { EXPECTED_CHAIN } from "@/lib/chain/config"
 import type { Member } from "@/lib/chain/types"
 
 export function useConnectedMember(members?: Member[]) {
   const mounted = useMounted();
-  const { address } = useAccount();
-  const chainId = useChainId();
+  const { address, chainId } = useAccount();
 
   const isReady = mounted && Boolean(address) && chainId === EXPECTED_CHAIN.id
 

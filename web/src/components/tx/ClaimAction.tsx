@@ -16,7 +16,7 @@ export function ClaimAction({
   canAct?: boolean
 }) {
   const hasPending = pending > 0n
-  const claim = useClaim({ splitter, token, account, enabled: hasPending })
+  const claim = useClaim({ splitter, token, account, enabled: hasPending && canAct })
 
   return (
     <TxButton
