@@ -11,16 +11,21 @@ import { useTokenBalances } from "@/hooks/useTokenBalances";
 import { useMemberDetail } from "@/hooks/useMemberDetail";
 import { useInvalidateOnBlock } from "@/hooks/useInvalidateOnBlock";
 import { useConnectedMember } from "@/hooks/useConnectedMember";
+import { useHistory } from "@/hooks/useHistory";
 //components
 import { AllocationBar } from "@/components/splitter/AllocationBar";
-import { TokenSelector } from "@/components/splitter/TokenSelector";
-import { AddTokenInput } from "@/components/splitter/AddTokenInput";
+import { TokenSelector } from "@/components/splitter/tokens/TokenSelector";
+import { AddTokenInput } from "@/components/splitter/tokens/AddTokenInput";
 import { MemberGrid } from "@/components/splitter/MemberGrid";
 import { useSplitterBlock } from "@/hooks/useSplitterBlock";
+import { ActivityTable } from "@/components/splitter/ActivityTable";
+import { Plus, X } from "lucide-react";
 
 export default function SplitterPage() {
   const params = useParams<{ address: string }>();
   const address = params.address;
+
+  const [manualTrackingOpen, setManualTrackingOpen] = useState(false)
 
   const splitter = isAddress(address) ? (address as Address) : undefined;
 
@@ -37,6 +42,8 @@ export default function SplitterPage() {
   const { data: detail, isLoading: isLoadingDetail } = useMemberDetail(
     splitter, openMember, tokens, fromBlock
   )
+
+  const { data: history, isLoading : isLoadingHistory} = useHistory(splitter, fromBlock)
 
   //only using 'token-balances' and 'member-detail' keys because 'splitter-tokens' key would "overcall" getlogs calls
   useInvalidateOnBlock(["token-balances", "member-detail"]);
@@ -102,14 +109,46 @@ export default function SplitterPage() {
           </div>
         ) : activeToken ? (
           <div className="space-y-4">
-            <div className="flex flex-col gap-2">
-              <p className="text-xs text-muted">Splitter tokens :</p>
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted">Splitter tokens :</p>
+
+                <button
+                  type="button"
+                  onClick={() => setManualTrackingOpen((current) => !current)}
+                  className="text-[11px] text-muted transition-colors hover:text-accent hover:font-medium"
+                >
+                    {manualTrackingOpen ? (
+                      <div className="flex gap-0.5 items-center">
+                        <X size={11} />
+                        <span>Close manual tracking</span>
+                      </div>
+                    ) : (
+                      <div className="flex gap-0.5 items-center">
+                        <Plus size={11} />
+                        <span>Add token tracking manually</span>
+                      </div>
+                    )}
+                </button>
+              </div>
+
+              <div
+                className={`grid transition-all duration-300 ease-out ${
+                  manualTrackingOpen
+                    ? "grid-rows-[1fr] opacity-100"
+                    : "grid-rows-[0fr] opacity-0"
+                }`}
+              >
+                <div className="overflow-hidden">
+                  <AddTokenInput onAdd={addToken} />
+                </div>
+              </div>
+
               <TokenSelector
                 tokens={tokens}
                 selected={activeToken.address}
                 onSelect={setToken}
-                />
-                <AddTokenInput onAdd={addToken} />
+              />
             </div>
             <div className="flex flex-col gap-2">
               <p className="text-xs text-muted">Members status :</p>
@@ -125,7 +164,11 @@ export default function SplitterPage() {
                 connectedAddress={connectedAddress}
                 canAct={canAct}
               />
-            </div>
+              </div>
+              <div className="flex flex-col gap-2">
+                <p className="text-xs text-muted">Activity :</p>
+                <ActivityTable entries={history} tokens={tokens} isLoading={isLoadingHistory} />
+              </div>
           </div>
         ) : null}
       </div>

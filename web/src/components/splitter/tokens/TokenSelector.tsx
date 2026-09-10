@@ -10,7 +10,7 @@ export function TokenSelector({
   onSelect: (token: string) => void;
   }) {
   return (
-    <div className="flex gap-2">
+    <div className="flex flex-wrap gap-2">
       {tokens.map((token) => (
         <button
           key={token.address}
