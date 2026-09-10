@@ -10,7 +10,7 @@ export const config = createConfig({
   chains: [sepolia, foundry],
   connectors: [injected()],
   transports: {
-    [sepolia.id]: http('https://ethereum-sepolia-rpc.publicnode.com', {batch: true}), //viem tries multicall3 when its possible
+    [sepolia.id]: http('/api/rpc', {batch: true}), //viem tries multicall3 when its possible
     [foundry.id]: http('http://127.0.0.1:8545', {batch: true}),
   },
   ssr: true,
