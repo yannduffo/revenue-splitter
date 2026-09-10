@@ -6,7 +6,7 @@ import { splitterAbi } from "@/lib/generated";
 import { useTx } from "./useTx";
 import { parseTxError } from "@/lib/errors";
 
-const KEYS = ["token-balances", "member-detail", "splitter-token"];
+const KEYS = ["token-balances", "member-detail", "splitter-token", "history"];
 
 export function useClaim({
   splitter,

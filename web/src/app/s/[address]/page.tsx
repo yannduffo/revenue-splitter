@@ -16,7 +16,7 @@ import { useHistory } from "@/hooks/useHistory";
 import { AllocationBar } from "@/components/splitter/AllocationBar";
 import { TokenSelector } from "@/components/splitter/tokens/TokenSelector";
 import { AddTokenInput } from "@/components/splitter/tokens/AddTokenInput";
-import { MemberGrid } from "@/components/splitter/MemberGrid";
+import { MemberGrid } from "@/components/splitter/members/MemberGrid";
 import { useSplitterBlock } from "@/hooks/useSplitterBlock";
 import { ActivityTable } from "@/components/splitter/ActivityTable";
 import { Plus, X } from "lucide-react";
@@ -46,7 +46,8 @@ export default function SplitterPage() {
   const { data: history, isLoading : isLoadingHistory} = useHistory(splitter, fromBlock)
 
   //only using 'token-balances' and 'member-detail' keys because 'splitter-tokens' key would "overcall" getlogs calls
-  useInvalidateOnBlock(["token-balances", "member-detail"]);
+  // adding 'history' key would garanty an fresh history but would also overload the API
+  useInvalidateOnBlock(["token-balances", "member-detail",]);
 
   const activeToken = useMemo(
     () => tokens?.find((t) => t.address === token) ?? tokens?.[0],

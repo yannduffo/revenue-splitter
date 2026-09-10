@@ -9,8 +9,8 @@ import type { MemberTokenRow } from "@/lib/chain/balance";
 
 //components/
 import { MemberFlowChart } from "./MemberFlowChart";
-import { ClaimAction } from "../tx/ClaimAction";
-import { ClaimManyAction } from "../tx/ClaimManyAction";
+import { ClaimAction } from "../../tx/ClaimAction";
+import { ClaimManyAction } from "../../tx/ClaimManyAction";
 
 import { User } from "lucide-react";
 

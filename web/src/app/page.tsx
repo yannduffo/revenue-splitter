@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useSplitters } from '@/hooks/useSplitters'
 import { useConnectedMember } from '@/hooks/useConnectedMember'
-import { SplitterList } from '@/components/splitter/SplitterList'
+import { SplitterList } from '@/components/splitter/home/SplitterList'
 import { SearchBar } from '@/components/SearchBar'
 import Image from 'next/image'
 

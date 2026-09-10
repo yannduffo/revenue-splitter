@@ -14,7 +14,6 @@ import {
 } from "@/lib/create";
 import { MemberRow } from "@/components/create/MemberRow";
 import { ShareSummary } from "@/components/create/ShareSummary";
-import { TxButton } from "@/components/tx/TxButton";
 import { ConfirmCreateModal } from "@/components/create/ConfirmCreateModal";
 import { shareTone } from "@/lib/format";
 

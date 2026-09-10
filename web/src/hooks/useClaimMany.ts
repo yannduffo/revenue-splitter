@@ -11,7 +11,7 @@ import { parseTxError, type TxError } from "@/lib/errors"
 import { useTx, type TxStatus } from "./useTx"
 
 const MAX_CLAIM_BATCH = 20
-const KEYS = ['token-balances', 'member-detail', 'splitter-tokens']
+const KEYS = ['token-balances', 'member-detail', 'splitter-tokens', "history"]
 
 export function useClaimMany({
   splitter, tokens, account,

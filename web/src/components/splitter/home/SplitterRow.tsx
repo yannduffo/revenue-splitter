@@ -1,7 +1,7 @@
 'use client'
 
 import Link from "next/link"
-import { shareTone, shortenAddress } from "@/lib/format"
+import { shareTone} from "@/lib/format"
 import type { Splitter } from "@/lib/chain/types"
 import type { SplitterRole } from "@/hooks/useSplitters"
 
