@@ -80,9 +80,9 @@ export default function CreatePage() {
           />
           <span className='text-2xl font-mono'>/ create </span>
         </div>
-        <p className="text-md text-muted">
-          Define who receives what. Shares are permanent : they can never be
-          changed once created.
+        <p className="text-lg text-muted">
+          Create a new splitter: list its members and set the share of incoming
+          revenue each one receives
         </p>
       </div>
 

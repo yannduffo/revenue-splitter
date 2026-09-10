@@ -24,50 +24,65 @@ export default function Home() {
   }, [all, mine, filter])
 
   return (
-    <main className="mx-auto flex max-w-275 flex-col gap-8 p-8">
-      <div className="flex items-center justify-between">
-        <div className='flex gap-2'>
-          <Image
-            src="/logo-no-txt.svg"
-            alt="Logo"
-            width={38}
-            height={38}
-          />
-          <span className='text-2xl font-mono'>/ home </span>
+    <main className="mx-auto flex max-w-275 flex-col gap-4 p-8">
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <div className='flex gap-2'>
+            <Image
+              src="/logo-no-txt.svg"
+              alt="Logo"
+              width={38}
+              height={38}
+            />
+            <span className='text-2xl font-mono'>/ home </span>
+          </div>
+          <Link
+            href="/create"
+            className="rounded-lg bg-accent px-3 py-1.5 text-sm text-paper"
+          >
+            New splitter
+          </Link>
         </div>
-        <Link
-          href="/create"
-          className="rounded-lg bg-accent px-3 py-1.5 text-sm text-paper"
-        >
-          New splitter
-        </Link>
+        <p className="text-lg text-muted mt-2">
+          Split ERC-20 revenue between a fixed set of members, on-chain <br />
+          Shares are set once at creation and can never be changed, not by the creator, not by anyone <br />
+          Send any token to a splitter&apos;s address: it is credited to every member pro rata, each one claim their share whenever they want
+        </p>
       </div>
 
-      <SearchBar value={search} onChange={setSearch} />
 
-      {error && (
-        <p className="rounded-xl border border-rule bg-surface p-4 text-sm text-muted">
-          Could not read the factory. Is the chain reachable?
-        </p>
-      )}
+      <div className="flex flex-col gap-2">
+        <p className="text-xs text-muted">Looking for a splitter ?</p>
+        <SearchBar value={search} onChange={setSearch} />
 
-      <SplitterList
-        title="Yours"
-        entries={filtered.mine}
-        isLoading={isLoading}
-        empty={
-          address
-            ? "You're not part of any splitter yet."
-            : 'Connect your wallet to see the splitters you belong to.'
-        }
-      />
+        {error && (
+          <p className="rounded-xl border border-rule bg-surface p-4 text-sm text-muted">
+            Could not read the factory. Is the chain reachable?
+          </p>
+        )}
+      </div>
 
-      <SplitterList
-        title="All splitters"
-        entries={filtered.all}
-        isLoading={isLoading}
-        empty="No splitter has been created yet."
-      />
-    </main>
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-4">
+        <SplitterList
+          title="Yours"
+          entries={filtered.mine}
+          isLoading={isLoading}
+          empty={
+            address
+              ? "You're not part of any splitter yet."
+              : 'Connect your wallet to see the splitters you belong to.'
+          }
+        />
+
+        <SplitterList
+          title="All splitters"
+          entries={filtered.all}
+          isLoading={isLoading}
+          empty="No splitter has been created yet."
+          />
+        </div>
+      </div>
+      </main>
   )
 }

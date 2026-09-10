@@ -4,6 +4,7 @@ import "./globals.css";
 
 import { Providers } from "@/lib/providers";
 import { ConnectButton } from "@/components/wallet/ConnectButton";
+import { NetworkBadge } from "@/components/NetworkBadge";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -27,7 +28,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                   height={20}
                 />
               </Link>
-              <ConnectButton />
+              <div className="flex items-center gap-3">
+                <NetworkBadge />
+                <span className="text-muted/20 text-lg">|</span>
+                <ConnectButton />
+              </div>
             </div>
           </header>
           {children}

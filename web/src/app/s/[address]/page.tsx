@@ -83,17 +83,25 @@ export default function SplitterPage() {
   //TODO : avant de rendre la page détail, il faudrait vérifier si le splitter est officiel (récupérable en intérrogeant "isOfficialSplitter" de lib/chain/factory.ts)
   return (
     <main className="flex flex-col mx-auto max-w-275 p-6 gap-4">
-      <div className="flex gap-2 items-baseline">
-        <div className='flex gap-2'>
-          <Image
-            src="/logo-no-txt.svg"
-            alt="Logo"
-            width={38}
-            height={38}
-          />
-          <span className='text-2xl font-mono'>/ splitter / </span>
-          <span className="font-mono text-2xl">{splitter}</span>
+      <div className="flex flex-col gap-2">
+        <div className="flex gap-2 items-baseline">
+          <div className='flex gap-2'>
+            <Image
+              src="/logo-no-txt.svg"
+              alt="Logo"
+              width={38}
+              height={38}
+            />
+            <span className='text-2xl font-mono'>/ splitter / </span>
+            <span className="font-mono text-2xl">{splitter}</span>
+          </div>
         </div>
+        {/*
+        <p className=" text-muted">
+          Live balances for every member of this splitter, token by token.
+          Connect your wallet to claim your share
+        </p>
+        */}
       </div>
       <div className="flex flex-col gap-2">
         <p className="text-xs text-muted">Shares distribution : </p>
