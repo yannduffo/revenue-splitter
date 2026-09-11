@@ -5,6 +5,7 @@ import "./globals.css";
 import { Providers } from "@/lib/providers";
 import { ConnectButton } from "@/components/wallet/ConnectButton";
 import { NetworkBadge } from "@/components/NetworkBadge";
+import { DemoPanel } from "@/components/demo/DemoPanel";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -52,6 +53,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             </div>
           </header>
           {children}
+          <DemoPanel />
         </Providers>
       </body>
     </html>

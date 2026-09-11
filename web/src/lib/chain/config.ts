@@ -7,7 +7,9 @@ export const EXPECTED_CHAIN = TARGET_CHAIN
 type Deployment = {
   factory: Address,
   factoryBlock: bigint,
-  demoSplitters?: Address[],
+  demoSplitterA?: Address,
+  demoSplitterB?: Address,
+  demoTokens?: Address[],
 }
 
 //parse env demo splitter addresses list (separeted by a ",")
@@ -26,7 +28,9 @@ const DEPLOYMENTS: Record<number, Deployment> = {
   11155111: {
     factory: process.env.NEXT_PUBLIC_SEPOLIA_FACTORY as Address,
     factoryBlock: BigInt(process.env.NEXT_PUBLIC_SEPOLIA_FACTORY_BLOCK ?? '0'),
-    demoSplitters: parseAddressList(process.env.NEXT_PUBLIC_SEPOLIA_DEMO_SPLITTERS),
+    demoSplitterA: process.env.NEXT_PUBLIC_SEPOLIA_DEMO_SPLITTER_A as Address | undefined,
+    demoSplitterB: process.env.NEXT_PUBLIC_SEPOLIA_DEMO_SPLITTER_B as Address | undefined,
+    demoTokens: parseAddressList(process.env.NEXT_PUBLIC_SEPOLIA_DEMO_TOKENS),
   }
 }
 
@@ -35,7 +39,13 @@ export const DEPLOYMENT = DEPLOYMENTS[EXPECTED_CHAIN.id]
 
 export const FACTORY_ADDRESS = DEPLOYMENT.factory
 export const FACTORY_BLOCK = DEPLOYMENT.factoryBlock
-export const DEMO_SPLITTERS = DEPLOYMENT.demoSplitters ?? []
+export const DEMO_SPLITTER_A = DEPLOYMENT.demoSplitterA
+export const DEMO_SPLITTER_B = DEPLOYMENT.demoSplitterB
+export const DEMO_TOKENS = DEPLOYMENT.demoTokens ?? []
+
+export const DEMO_SPLITTERS = [DEMO_SPLITTER_A, DEMO_SPLITTER_B].filter(
+  Boolean,
+) as Address[]
 
 //in lower case
 const DEMO_SET = new Set(DEMO_SPLITTERS.map((a) => a.toLowerCase()))

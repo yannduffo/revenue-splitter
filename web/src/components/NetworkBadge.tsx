@@ -13,9 +13,10 @@ export function NetworkBadge() {
   return (
     <span
       title={detail}
-      className="flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-700"
+      className="flex items-center gap-1.5 rounded-full border border-blue-300 bg-blue-100 px-2.5 py-1 text-xs font-medium text-blue-600"
     >
       <Info size={16} aria-hidden="true" />
+      Live on {' '}
       {EXPECTED_CHAIN.name} {label}
     </span>
   )

@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [
     foundry({
       project: '../contracts',
-      include: ['Splitter.sol/**', 'SplitterFactory.sol/**'],
+      include: ['Splitter.sol/**', 'SplitterFactory.sol/**', 'DemoToken.sol/**'],
     }),
   ],
 })
