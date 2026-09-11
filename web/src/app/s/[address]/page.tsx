@@ -18,6 +18,8 @@ import { TokenSelector } from "@/components/splitter/tokens/TokenSelector";
 import { AddTokenInput } from "@/components/splitter/tokens/AddTokenInput";
 import { MemberGrid } from "@/components/splitter/members/MemberGrid";
 import { MessagePage } from "@/components/MessagePage";
+import { DemoBadge } from "@/components/splitter/DemoBadge";
+import { isDemoSplitter } from "@/lib/chain/config";
 import { useSplitterBlock } from "@/hooks/useSplitterBlock";
 import { ActivityTable } from "@/components/splitter/ActivityTable";
 import { Plus, X } from "lucide-react";
@@ -91,7 +93,7 @@ export default function SplitterPage() {
   return (
     <main className="flex flex-col mx-auto max-w-275 p-6 gap-4">
       <div className="flex flex-col gap-2">
-        <div className="flex gap-2 items-baseline">
+        <div className="flex gap-4 items-center">
           <div className='flex gap-2'>
             <Image
               src="/logo-no-txt.svg"
@@ -102,7 +104,9 @@ export default function SplitterPage() {
             <span className='text-2xl font-mono'>/ splitter / </span>
             <span className="font-mono text-2xl">{splitter}</span>
           </div>
+          {isDemoSplitter(splitter) && <DemoBadge />}
         </div>
+
         {/*
         <p className=" text-muted">
           Live balances for every member of this splitter, token by token.

@@ -7,8 +7,15 @@ export const EXPECTED_CHAIN = TARGET_CHAIN
 type Deployment = {
   factory: Address,
   factoryBlock: bigint,
-  demoSplitter?: Address,
+  demoSplitters?: Address[],
 }
+
+//parse env demo splitter addresses list (separeted by a ",")
+const parseAddressList = (raw?: string): Address[] =>
+  (raw ?? '')
+    .split(',')
+    .map((a) => a.trim())
+    .filter(Boolean) as Address[]
 
 //creating both anvil and sepolia set of constants
 const DEPLOYMENTS: Record<number, Deployment> = {
@@ -19,7 +26,7 @@ const DEPLOYMENTS: Record<number, Deployment> = {
   11155111: {
     factory: process.env.NEXT_PUBLIC_SEPOLIA_FACTORY as Address,
     factoryBlock: BigInt(process.env.NEXT_PUBLIC_SEPOLIA_FACTORY_BLOCK ?? '0'),
-    demoSplitter: process.env.NEXT_PUBLIC_SEPOLIA_DEMO_SPLITTER as Address | undefined,
+    demoSplitters: parseAddressList(process.env.NEXT_PUBLIC_SEPOLIA_DEMO_SPLITTERS),
   }
 }
 
@@ -28,7 +35,14 @@ export const DEPLOYMENT = DEPLOYMENTS[EXPECTED_CHAIN.id]
 
 export const FACTORY_ADDRESS = DEPLOYMENT.factory
 export const FACTORY_BLOCK = DEPLOYMENT.factoryBlock
-export const DEMO_SPLITTER = DEPLOYMENT.demoSplitter
+export const DEMO_SPLITTERS = DEPLOYMENT.demoSplitters ?? []
+
+//in lower case
+const DEMO_SET = new Set(DEMO_SPLITTERS.map((a) => a.toLowerCase()))
+
+export function isDemoSplitter(address?: string): boolean {
+  return Boolean(address && DEMO_SET.has(address.toLowerCase()))
+}
 
 // function used to create explorer links on "everything" (contract, tx)
 // will return undefined on anvil as there is no explorer
