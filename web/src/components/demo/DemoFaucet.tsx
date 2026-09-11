@@ -11,12 +11,8 @@ import { useSendToken } from '@/hooks/useSendToken'
 import { TxButton } from '@/components/tx/TxButton'
 import { formatAmount } from '@/lib/format'
 import { EXPECTED_CHAIN } from '@/lib/chain/config'
-import type { TxError } from '@/lib/errors'
 
 const AMOUNT_RE = /^\d*\.?\d*$/
-
-// TxButton wants a message; TxError's "rejected" variant has none
-const withMessage = (e?: TxError) => (e && 'message' in e ? e : undefined)
 
 export function DemoFaucet({ splitter }: { splitter?: Address }) {
   const { address, canAct } = useConnectedMember()
@@ -94,7 +90,7 @@ export function DemoFaucet({ splitter }: { splitter?: Address }) {
         onReset={faucet.reset}
         disabled={!faucet.isReady}
         isSimulating={faucet.isSimulating}
-        simulationError={withMessage(faucet.simulationError)}
+        simulationError={faucet.simulationError}
       />
 
       {splitter && (
@@ -116,7 +112,7 @@ export function DemoFaucet({ splitter }: { splitter?: Address }) {
             disabled={!transfer.isReady}
             disabledReason={parsed === undefined ? 'Enter an amount' : undefined}
             isSimulating={transfer.isSimulating}
-            simulationError={withMessage(transfer.simulationError)}
+            simulationError={transfer.simulationError}
           />
         </div>
       )}

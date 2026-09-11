@@ -5,7 +5,7 @@ import type { Splitter } from "./types";
 export async function getSplitter(
   client: PublicClient,
   address: Address,
-): Promise<Splitter> {
+): Promise<Pick<Splitter, 'address' | 'members'>> {
   const memberAddresses = await client.readContract({
     address,
     abi: splitterAbi,

@@ -1,6 +1,7 @@
 'use client'
 
 import type { TxStatus } from "@/hooks/useTx"
+import type { TxError } from "@/lib/errors"
 
 const LABELS: Record<TxStatus['state'], string> = {
   idle: '',
@@ -19,7 +20,7 @@ export function TxButton({ label, status, onClick, onReset, disabled, disabledRe
   disabled?: boolean,
   disabledReason?: string,
   isSimulating?: boolean,
-  simulationError?: {kind: string, message:string}
+  simulationError?: TxError
 }) {
   const needsReset = status.state === 'error' || status.state === 'reverted'
   const busy = status.state === 'awaitingSignature' || status.state === 'confirming'

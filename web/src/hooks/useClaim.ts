@@ -42,6 +42,7 @@ export function useClaim({
   return {
     claim,
     status: tx.status,
+    reset: tx.reset,
     isReady: Boolean(simulation.data?.request), //"isReady" will enable or disabled the claim button
     isSimulating: simulation.isLoading,
     simulationError,

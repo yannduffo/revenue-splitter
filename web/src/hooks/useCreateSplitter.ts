@@ -13,7 +13,7 @@ export function useCreateSplitter({
   payload,
   account,
 }: {
-  payload?: { members: Address[]; shares: bigint };
+  payload?: { members: Address[]; shares: bigint[] };
   account?: Address;
   }) {
   //simulation contract call
