@@ -19,10 +19,10 @@ import { AddTokenInput } from "@/components/splitter/tokens/AddTokenInput";
 import { MemberGrid } from "@/components/splitter/members/MemberGrid";
 import { MessagePage } from "@/components/MessagePage";
 import { DemoBadge } from "@/components/splitter/DemoBadge";
-import { isDemoSplitter } from "@/lib/chain/config";
+import { isDemoSplitter, explorerUrl } from "@/lib/chain/config";
 import { useSplitterBlock } from "@/hooks/useSplitterBlock";
 import { ActivityTable } from "@/components/splitter/ActivityTable";
-import { Plus, X } from "lucide-react";
+import { Plus, X, ExternalLink } from "lucide-react";
 
 export default function SplitterPage() {
   const params = useParams<{ address: string }>();
@@ -104,6 +104,17 @@ export default function SplitterPage() {
             <span className='text-2xl font-mono'>/ splitter / </span>
             <span className="font-mono text-2xl">{splitter}</span>
           </div>
+          {explorerUrl('address', splitter) && (
+            <a
+              href={explorerUrl('address', splitter)}
+              target="_blank"
+              rel="noreferrer"
+              title="View this splitter on the explorer"
+              className="self-center text-muted transition-colors hover:text-accent"
+            >
+              <ExternalLink size={16} />
+            </a>
+          )}
           {isDemoSplitter(splitter) && <DemoBadge />}
         </div>
 

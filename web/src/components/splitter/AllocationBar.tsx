@@ -1,5 +1,7 @@
+import { ExternalLink } from "lucide-react";
 import type { Member } from "@/lib/chain/types";
 import { formatBps, shareTone, shortenAddress } from "@/lib/format";
+import { explorerUrl } from "@/lib/chain/config";
 
 export function AllocationBar({ members }: { members: Member[] }) {
   return (
@@ -21,20 +23,42 @@ export function AllocationBar({ members }: { members: Member[] }) {
         })}
       </div>
 
-      {/* format square gap shartenAddress */}
+      {/* format square gap shartenAddress + explorer link */}
       <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2">
-        {members.map((member, i) => (
-          <div
-            key={member.address}
-            className="flex items-center gap-2 font-mono text-xs text-muted"
-          >
-            <span
-              className="size-4 shrink-0 rounded"
-              style={{ backgroundColor: shareTone(i, members.length).bg }}
-            />
-            {shortenAddress(member.address)}
-          </div>
-        ))}
+        {members.map((member, i) => {
+          //undefined sur anvil : pas d'explorateur, on rend alors une entree non cliquable
+          const url = explorerUrl('address', member.address)
+
+          const content = (
+            <>
+              <span
+                className="size-4 shrink-0 rounded"
+                style={{ backgroundColor: shareTone(i, members.length).bg }}
+              />
+              {shortenAddress(member.address)}
+              {url && <ExternalLink size={12} />}
+            </>
+          )
+
+          return url ? (
+            <a
+              key={member.address}
+              href={url}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-2 font-mono text-xs text-muted transition-colors hover:text-accent"
+            >
+              {content}
+            </a>
+          ) : (
+            <div
+              key={member.address}
+              className="flex items-center gap-2 font-mono text-xs text-muted"
+            >
+              {content}
+            </div>
+          )
+        })}
       </div>
     </div>
   )
