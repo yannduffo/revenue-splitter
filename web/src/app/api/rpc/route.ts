@@ -15,13 +15,13 @@ export async function POST(request: Request) {
   try {
     const upstream = await fetch(UPSTREAM, {
       method: 'POST',
-      headers: { 'Content-Type': 'appliation/json' },
+      headers: { 'Content-Type': 'application/json' },
       body
     })
 
     return new NextResponse(await upstream.text(), {
       status: upstream.status, //propagating response status
-      headers: {'Content-Type' : 'applicaiton/json'}
+      headers: {'Content-Type' : 'application/json'}
     })
   } catch (e) {
     console.error('RPC proxy error ; ', e)

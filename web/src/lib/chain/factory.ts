@@ -2,6 +2,7 @@ import { getAbiItem, type Address, type PublicClient } from "viem";
 import { splitterFactoryAbi } from "@/lib/generated";
 import { FACTORY_ADDRESS, FACTORY_BLOCK } from "./config";
 import type { Splitter } from "./types";
+import { collectLogs } from "./logs";
 
 const createdEvent = getAbiItem({
   abi: splitterFactoryAbi,
@@ -10,12 +11,14 @@ const createdEvent = getAbiItem({
 
 //Reading the logs since Facroty creating to list all splitter ever created
 export async function listSplitters(client: PublicClient): Promise<Splitter[]> {
-  const logs = await client.getLogs({
-    address: FACTORY_ADDRESS,
-    event: createdEvent,
-    fromBlock: FACTORY_BLOCK,
-    toBlock: "latest",
-  });
+  const logs = await collectLogs(client, FACTORY_BLOCK, (fromBlock, toBlock) =>
+    client.getLogs({
+      address: FACTORY_ADDRESS,
+      event: createdEvent,
+      fromBlock,
+      toBlock,
+    }),
+  );
 
   //from the corresponding log, we retrun a Splitter table
   return logs
@@ -59,13 +62,15 @@ export async function getSplitterBlock(
   client: PublicClient,
   splitter: Address,
 ): Promise<bigint> {
-  const logs = await client.getLogs({
-    address: FACTORY_ADDRESS,
-    event: createdEvent,
-    args: { splitter }, //splitter address is indexed on createdEvent
-    fromBlock: FACTORY_BLOCK,
-    toBlock: 'latest',
-  })
+  const logs = await collectLogs(client, FACTORY_BLOCK, (fromBlock, toBlock) =>
+    client.getLogs({
+      address: FACTORY_ADDRESS,
+      event: createdEvent,
+      args: { splitter }, //splitter address is indexed on createdEvent
+      fromBlock,
+      toBlock,
+    }),
+  )
 
   return logs[0]?.blockNumber ?? FACTORY_BLOCK
 }

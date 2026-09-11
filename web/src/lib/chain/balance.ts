@@ -1,6 +1,7 @@
 import { getAbiItem, type Address, type PublicClient } from "viem";
 import { splitterAbi } from "@/lib/generated";
 import type { Member, MemberBalance, SplitterToken } from "./types";
+import { collectLogs } from "./logs";
 
 const claimedEvent = getAbiItem({ abi: splitterAbi, name: "Claimed" });
 
@@ -32,12 +33,15 @@ export async function getTokenBalances(
         })
       )
     ),
-    client.getLogs({
-      address: splitter,
-      event: claimedEvent,
-      args: { token },
-      fromBlock: fromBlock
-    }) //args: {token} filter on indexed parameters
+    collectLogs(client, fromBlock, (from, to) =>
+      client.getLogs({
+        address: splitter,
+        event: claimedEvent,
+        args: { token }, //args: {token} filter on indexed parameters
+        fromBlock: from,
+        toBlock: to,
+      }),
+    )
   ])
 
   const claimedBy = new Map<string, bigint>()
@@ -72,12 +76,15 @@ export async function getMemberDetail(
         }),
       ),
     ),
-    client.getLogs({
-      address: splitter,
-      event: claimedEvent,
-      args: { member },
-      fromBlock: fromBlock
-    }),
+    collectLogs(client, fromBlock, (from, to) =>
+      client.getLogs({
+        address: splitter,
+        event: claimedEvent,
+        args: { member },
+        fromBlock: from,
+        toBlock: to,
+      }),
+    ),
   ])
 
   const claimedByToken = new Map<string, bigint>()

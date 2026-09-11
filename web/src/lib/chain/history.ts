@@ -6,7 +6,7 @@ import {
 } from "viem";
 import { splitterAbi, splitterFactoryAbi } from "../generated";
 import { FACTORY_ADDRESS, FACTORY_BLOCK } from "./config";
-import type { SplitterToken } from "./types";
+import { collectLogs } from "./logs";
 
 const transferEvent = parseAbiItem(
   "event Transfer(address indexed from, address indexed to, uint256 value)",
@@ -37,25 +37,31 @@ export async function getHistory(
 ): Promise<HistoryEntry[]> {
   //getting the logs from RPC
   const [createdLogs, depositLogs, claimLogs] = await Promise.all([
-    client.getLogs({
-      address: FACTORY_ADDRESS,
-      event: createdEvent,
-      args: { splitter },
-      fromBlock: FACTORY_BLOCK,
-      toBlock: 'latest'
-    }),
-    client.getLogs({
-      event: transferEvent,
-      args: { to: splitter },
-      fromBlock,
-      toBlock: 'latest',
-    }),
-    client.getLogs({
-      address: splitter,
-      event: claimedEvent,
-      fromBlock,
-      toBlock: 'latest',
-    })
+    collectLogs(client, FACTORY_BLOCK, (from, to) =>
+      client.getLogs({
+        address: FACTORY_ADDRESS,
+        event: createdEvent,
+        args: { splitter },
+        fromBlock: from,
+        toBlock: to,
+      }),
+    ),
+    collectLogs(client, fromBlock, (from, to) =>
+      client.getLogs({
+        event: transferEvent,
+        args: { to: splitter },
+        fromBlock: from,
+        toBlock: to,
+      }),
+    ),
+    collectLogs(client, fromBlock, (from, to) =>
+      client.getLogs({
+        address: splitter,
+        event: claimedEvent,
+        fromBlock: from,
+        toBlock: to,
+      }),
+    )
   ])
 
   //creating History table
