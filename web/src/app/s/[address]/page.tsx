@@ -17,6 +17,7 @@ import { AllocationBar } from "@/components/splitter/AllocationBar";
 import { TokenSelector } from "@/components/splitter/tokens/TokenSelector";
 import { AddTokenInput } from "@/components/splitter/tokens/AddTokenInput";
 import { MemberGrid } from "@/components/splitter/members/MemberGrid";
+import { MessagePage } from "@/components/MessagePage";
 import { useSplitterBlock } from "@/hooks/useSplitterBlock";
 import { ActivityTable } from "@/components/splitter/ActivityTable";
 import { Plus, X } from "lucide-react";
@@ -77,7 +78,13 @@ export default function SplitterPage() {
     if(!touched && isMember && connectedAddress) setOpenMember(connectedAddress)
   }, [touched, isMember, connectedAddress])
 
-  if (!splitter) return <p className="p-8 text-muted">Not a valid address.</p>;
+  if (!splitter)
+    return (
+      <MessagePage
+        heading="/ not a splitter address "
+        message="This is not a valid splitter address. Check the link you followed, or browse the existing splitters from the home page."
+      />
+    );
   if (!info) return <p className="p-8 text-muted">Loading…</p>;
 
   //TODO : avant de rendre la page détail, il faudrait vérifier si le splitter est officiel (récupérable en intérrogeant "isOfficialSplitter" de lib/chain/factory.ts)
