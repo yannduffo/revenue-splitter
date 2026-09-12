@@ -13,6 +13,8 @@ export const config = createConfig({
     [sepolia.id]: http('/api/rpc', {batch: true}), //viem tries multicall3 when its possible
     [foundry.id]: http('http://127.0.0.1:8545', {batch: true}),
   },
+  //sepolia produces a block every ~12s; viem's default caps at 4s, so 2 polls out of 3 are wasted
+  pollingInterval: 12_000,
   ssr: true,
   storage: createStorage({storage: cookieStorage})
 })

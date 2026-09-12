@@ -9,7 +9,7 @@ import { useSplitter } from "@/hooks/useSplitter";
 import { useSplitterTokens } from "@/hooks/useSplitterTokens";
 import { useTokenBalances } from "@/hooks/useTokenBalances";
 import { useMemberDetail } from "@/hooks/useMemberDetail";
-import { useInvalidateOnBlock } from "@/hooks/useInvalidateOnBlock";
+import { useInvalidateOnInterval } from "@/hooks/useInvalidateOnInterval";
 import { useConnectedMember } from "@/hooks/useConnectedMember";
 import { useHistory } from "@/hooks/useHistory";
 //components
@@ -50,7 +50,7 @@ export default function SplitterPage() {
 
   //only using 'token-balances' and 'member-detail' keys because 'splitter-tokens' key would "overcall" getlogs calls
   // adding 'history' key would garanty an fresh history but would also overload the API
-  useInvalidateOnBlock(["token-balances", "member-detail",]);
+  useInvalidateOnInterval(["token-balances", "member-detail"]);
 
   const activeToken = useMemo(
     () => tokens?.find((t) => t.address === token) ?? tokens?.[0],
