@@ -4,7 +4,7 @@ import { useState, type CSSProperties } from "react";
 import type { Address } from "viem";
 
 //lib/
-import { formatBps } from "@/lib/format";
+import { formatBps, shortenAddress } from "@/lib/format";
 import type { MemberTokenRow } from "@/lib/chain/balance";
 
 //components/
@@ -58,7 +58,8 @@ export function MemberDetailPanel({
         >
           <span className="flex items-center gap-1.5 pb-2 font-mono text-xs text-muted">
             <User size={16} />
-            {account}
+            <span className="sm:hidden">{shortenAddress(account, 6)}</span>
+            <span className="hidden sm:inline">{account}</span>
             <span className="text-rule">•</span>
             {formatBps(shareBps)}
           </span>

@@ -1,7 +1,7 @@
 'use client'
 
 import { ArrowDownLeft, ArrowUpRight, Sparkles, ExternalLink } from 'lucide-react'
-import { formatAmount} from '@/lib/format'
+import { formatAmount, shortenAddress } from '@/lib/format'
 import { explorerUrl } from '@/lib/chain/config'
 import type { HistoryEntry } from '@/lib/chain/history'
 import type { SplitterToken } from '@/lib/chain/types'
@@ -40,7 +40,7 @@ export function ActivityTable({
 
   return (
     <div className="overflow-hidden rounded-xl border border-rule bg-surface">
-      <div className="grid grid-cols-[100px_minmax(0,1fr)_140px_120px] gap-3 border-b border-rule  bg-paper/40 px-4 py-2 text-[11px] uppercase tracking-wide text-muted">
+      <div className="hidden grid-cols-[100px_minmax(0,1fr)_140px_120px] gap-3 border-b border-rule  bg-paper/40 px-4 py-2 text-[11px] uppercase tracking-wide text-muted sm:grid">
         <span>Event</span>
         <span>Account</span>
         <span className="text-right">Amount</span>
@@ -62,16 +62,20 @@ export function ActivityTable({
             return (
               <div
                 key={entry.id}
-                className="grid grid-cols-[100px_minmax(0,1fr)_140px_120px] items-center gap-3 border-b border-rule px-4 py-2.5 text-sm last:border-0"
+                className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 border-b border-rule px-4 py-2.5 text-sm last:border-0 sm:grid-cols-[100px_minmax(0,1fr)_140px_120px] sm:gap-3"
               >
                 <span className="flex items-center gap-1.5 text-xs">
                   <Icon size={14} className="text-muted" />
                   {LABELS[entry.kind]}
                 </span>
 
-                <span className="truncate font-mono text-xs text-muted">
-                  {/* entry.actor ? shortenAddress(entry.actor, 6) : '—' */}
-                  {entry.actor ? entry.actor : '—'}
+                <span className="col-start-1 row-start-2 truncate font-mono text-xs text-muted sm:col-auto sm:row-auto">
+                  {entry.actor ? (
+                    <>
+                      <span className="lg:hidden">{shortenAddress(entry.actor, 6)}</span>
+                      <span className="hidden lg:inline">{entry.actor}</span>
+                    </>
+                  ) : '—'}
                   {entry.kind === 'created' && entry.memberCount
                     ? ` · ${entry.memberCount} members`
                     : ''}

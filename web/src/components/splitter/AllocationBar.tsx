@@ -7,7 +7,7 @@ export function AllocationBar({ members }: { members: Member[] }) {
   return (
     <div>
       {/* percentage bar */}
-      <div className="flex h-11 overflow-hidden rounded-lg">
+      <div className="flex h-8 overflow-hidden rounded-lg sm:h-11">
         {members.map((member, i) => {
           const { bg, fg } = shareTone(i, members.length)
           return (
@@ -17,7 +17,10 @@ export function AllocationBar({ members }: { members: Member[] }) {
               style={{ width: `${member.shareBps / 100}%`, background: bg, color: fg }}
               title={`${member.address} — ${formatBps(member.shareBps)}`}
             >
-              {member.shareBps >= 700 ? formatBps(member.shareBps) : null}
+              {/* already shown per member in the cards below : redundant on mobile */}
+              <span className="hidden sm:inline">
+                {member.shareBps >= 700 ? formatBps(member.shareBps) : null}
+              </span>
             </div>
           )
         })}

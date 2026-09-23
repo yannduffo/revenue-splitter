@@ -20,6 +20,7 @@ import { MemberGrid } from "@/components/splitter/members/MemberGrid";
 import { MessagePage } from "@/components/MessagePage";
 import { DemoBadge } from "@/components/splitter/DemoBadge";
 import { isDemoSplitter, explorerUrl } from "@/lib/chain/config";
+import { shortenAddress } from "@/lib/format";
 import { useSplitterBlock } from "@/hooks/useSplitterBlock";
 import { ActivityTable } from "@/components/splitter/ActivityTable";
 import { Plus, X, ExternalLink } from "lucide-react";
@@ -91,9 +92,9 @@ export default function SplitterPage() {
 
   //TODO : avant de rendre la page détail, il faudrait vérifier si le splitter est officiel (récupérable en intérrogeant "isOfficialSplitter" de lib/chain/factory.ts)
   return (
-    <main className="flex flex-col mx-auto max-w-275 p-6 gap-4 pb-20">
+    <main className="flex flex-col mx-auto max-w-275 p-4 gap-4 pb-20 sm:p-6 sm:pb-20">
       <div className="flex flex-col gap-2">
-        <div className="flex gap-4 items-center">
+        <div className="flex flex-wrap gap-4 items-center">
           <div className='flex gap-2'>
             <Image
               src="/logo-no-txt.svg"
@@ -101,8 +102,15 @@ export default function SplitterPage() {
               width={38}
               height={38}
             />
-            <span className='text-2xl font-mono'>/ splitter / </span>
-            <span className="font-mono text-2xl">{splitter}</span>
+            <span className='text-base font-mono sm:text-xl lg:text-2xl'>
+              <span className="sm:hidden">/ s / </span>
+              <span className="hidden sm:inline">/ splitter / </span>
+            </span>
+            <span className="font-mono text-base sm:text-xl lg:text-2xl">
+              {/* full address at text-2xl needs ~990px of room */}
+              <span className="lg:hidden">{shortenAddress(splitter, 4)}</span>
+              <span className="hidden lg:inline">{splitter}</span>
+            </span>
           </div>
           {explorerUrl('address', splitter) && (
             <a

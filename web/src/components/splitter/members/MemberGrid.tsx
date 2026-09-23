@@ -7,8 +7,10 @@ import type { Address } from "viem";
 import { shareTone } from "@/lib/format";
 import { MemberCard } from "./MemberCard";
 import { MemberDetailPanel } from "./MemberDetailPanel";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 
-const COLS = 3;
+//must stay in sync with the grid-cols classes below
+const WIDE = '(min-width: 640px)';
 const PANEL_MS = 300;
 
 export function MemberGrid({
@@ -25,6 +27,8 @@ export function MemberGrid({
   connectedAddress?: Address
   canAct:boolean
   }) {
+  //the panel is col-span-full : where to insert it depends on the column count
+  const cols = useMediaQuery(WIDE) ? 3 : 1
   const [active, setActive] = useState(openMember)
 
   if (openMember && openMember !== active) setActive(openMember)
@@ -42,11 +46,11 @@ export function MemberGrid({
 
   // where to insert the detailPanel
   const panelAfter = activeIndex >= 0
-    ? Math.min((Math.floor(activeIndex / COLS) + 1) * COLS - 1, members.length - 1)
+    ? Math.min((Math.floor(activeIndex / cols) + 1) * cols - 1, members.length - 1)
     : -1
 
   return (
-    <div className="grid gap-3 grid-cols-3">
+    <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
       {members.map((member, i) => {
         const isOpen = member.address.toLowerCase() === openMember?.toLowerCase()
         return (
