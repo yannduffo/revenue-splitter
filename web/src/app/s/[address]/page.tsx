@@ -22,6 +22,7 @@ import { DemoBadge } from "@/components/splitter/DemoBadge";
 import { isDemoSplitter, explorerUrl } from "@/lib/chain/config";
 import { shortenAddress } from "@/lib/format";
 import { useSplitterBlock } from "@/hooks/useSplitterBlock";
+import { useIsOfficialSplitter } from "@/hooks/useIsOfficialSplitter";
 import { ActivityTable } from "@/components/splitter/ActivityTable";
 import { Plus, X, ExternalLink } from "lucide-react";
 
@@ -39,6 +40,7 @@ export default function SplitterPage() {
   const [openMember, setOpenMember] = useState<Address>()
   const [touched, setTouched] = useState(false) //flag to auto-open member's card only the 1st time
 
+  const { data: official } = useIsOfficialSplitter(splitter);
   const { data: info } = useSplitter(splitter);
   const { data: fromBlock } = useSplitterBlock(splitter);
 
@@ -88,9 +90,20 @@ export default function SplitterPage() {
         message="This is not a valid splitter address. Check the link you followed, or browse the existing splitters from the home page."
       />
     );
+  //checked if it's official before reading the splitter (qyery on getMembers() would otherwise leave the page spinning forever)
+  if (official === undefined)
+    return <p className="p-8 text-muted">Loading…</p>;
+
+  if (!official)
+    return (
+      <MessagePage //we are using 404 model
+        heading="/ unknown contract "
+        message="This address is not a splitter created by the official factory. It may be an unrelated contract, or an imitation — don't interact with it."
+      />
+    );
+
   if (!info) return <p className="p-8 text-muted">Loading…</p>;
 
-  //TODO : avant de rendre la page détail, il faudrait vérifier si le splitter est officiel (récupérable en intérrogeant "isOfficialSplitter" de lib/chain/factory.ts)
   return (
     <main className="flex flex-col mx-auto max-w-275 p-4 gap-4 pb-20 sm:p-6 sm:pb-20">
       <div className="flex flex-col gap-2">

@@ -146,6 +146,30 @@ returns wagmi's internal chain, which silently stays on the configured default
 when the wallet sits on an unlisted network. `useAccount().chainId` is what
 actually reflects the wallet, and it is what the guard uses.
 
+### Official splitter check
+
+A `Splitter` is an ordinary contract. Anyone can deploy a look-alike exposing the
+same interface — `getMembers()`, `pending()`, `claim()` — whose `claim()` returns
+nothing, and share a link to it. The detail page therefore refuses to render
+anything until the factory confirms the address came from it, via
+`isOfficialSplitter`.
+
+The home list is cached, so it seems tempting to read the answer from there and
+skip the call. It is not enough: that cache is only warm if the visitor came
+through the home page, and a shared link lands straight on `/s/0x…` with an empty
+cache — precisely the case the check exists for. The cache can *confirm* an
+address (present in the list means created by the factory) but never *refute* one,
+since absence may only mean a cold cache. It is used as `initialData` for the
+positive case, falling through to the call otherwise. One `eth_call` against the
+~5000 credits a splitter page already costs.
+
+The check also runs *before* reading the splitter, because `getMembers()` reverts
+on a foreign contract and the page would otherwise spin forever.
+
+What it does not do: it proves **provenance, not intent**. Anyone can create a
+splitter through the official factory, with any members and any shares. The check
+rules out imitations of the contract, not dishonest use of the real one.
+
 ---
 
 ## Transaction lifecycle
