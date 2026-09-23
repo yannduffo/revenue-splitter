@@ -1,7 +1,7 @@
 'use client'
 
 import Link from "next/link"
-import { shareTone} from "@/lib/format"
+import { shareTone, shortenAddress } from "@/lib/format"
 import type { Splitter } from "@/lib/chain/types"
 import type { SplitterRole } from "@/hooks/useSplitters"
 import { isDemoSplitter } from "@/lib/chain/config"
@@ -15,9 +15,11 @@ export function SplitterRow({ splitter, role }: { splitter: Splitter; role: Spli
     >
       {/* shortAddr + connected user role */}
       <div className="flex min-w-0 items-center gap-3">
-        <span className="truncate font-mono text-sm group-hover:text-accent">
-          {/*TODO passer en shortenAddress(splitter.address, 6) lorsque la fenêtre réduit en largeur*/}
-          {splitter.address}
+        <span className="font-mono text-sm group-hover:text-accent">
+          {/* tail truncation would hide the end of the address, which is half of
+              what people check : shorten keeps both ends */}
+          <span className="sm:hidden">{shortenAddress(splitter.address, 6)}</span>
+          <span className="hidden truncate sm:inline">{splitter.address}</span>
         </span>
         {isDemoSplitter(splitter.address) && <DemoBadge />}
         {role !== 'none' && (

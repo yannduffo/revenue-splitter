@@ -36,18 +36,27 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body>
         <Providers>
           <header className="border-b border-rule">
-            <div className="mx-auto flex items-center justify-between px-8 py-4">
+            <div className="mx-auto flex items-center justify-between px-4 py-4 sm:px-8">
               <Link href={"/"}>
+                {/* 608x155 source : 120x31 keeps the ratio */}
                 <Image
                   src="/logo-texte-sans-fond-selection.png"
                   alt="Splittr"
                   width={120}
-                  height={20}
+                  height={31}
+                  className="hidden sm:block"
+                />
+                <Image
+                  src="/logo-no-txt.svg"
+                  alt="Splittr"
+                  width={32}
+                  height={32}
+                  className="sm:hidden"
                 />
               </Link>
               <div className="flex items-center gap-3">
                 <NetworkBadge />
-                <span className="text-muted/20 text-lg">|</span>
+                <span className="hidden text-lg text-muted/20 sm:inline">|</span>
                 <ConnectButton />
               </div>
             </div>

@@ -24,7 +24,7 @@ export default function Home() {
   }, [all, mine, filter])
 
   return (
-    <main className="mx-auto flex max-w-275 flex-col gap-4 p-8">
+    <main className="mx-auto flex max-w-275 flex-col gap-4 p-4 pb-20 sm:p-8 sm:pb-20">
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <div className='flex gap-2'>
@@ -43,11 +43,17 @@ export default function Home() {
             New splitter
           </Link>
         </div>
-        <p className="text-lg text-muted mt-2">
-          Split ERC-20 revenue between a fixed set of members, on-chain <br />
-          Shares are set once at creation and can never be changed, not by the creator, not by anyone <br />
-          Send any token to a splitter&apos;s address: it is credited to every member pro rata, each one claim their share whenever they want
-        </p>
+        <div className="mt-2 flex flex-col gap-1 text-base text-muted sm:text-lg">
+          <p>Split ERC-20 revenue between a fixed set of members, on-chain</p>
+          <p>
+            Shares are set once at creation and can never be changed, not by the
+            creator, not by anyone
+          </p>
+          <p>
+            Send any token to a splitter&apos;s address: it is credited to every
+            member pro rata, each one claim their share whenever they want
+          </p>
+        </div>
       </div>
 
 

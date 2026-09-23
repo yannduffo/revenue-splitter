@@ -22,12 +22,13 @@ export function DemoPanel() {
 
   return (
     <>
-      {/* right-8 matches the header px-8, so it sits under the wallet button */}
+      {/* bottom right at every width : the gutter next to the max-w column only
+          opens above 1400px, so a top-right anchor overlaps content on most laptops */}
       <button
         type="button"
         onClick={() => setOpen(true)}
         aria-expanded={open}
-        className="fixed right-8 top-20 z-30 flex cursor-pointer items-center gap-1.5 rounded-lg border border-amber-300 bg-amber-100 px-3 py-1.5 text-sm font-medium text-amber-900 shadow-sm transition-colors hover:bg-amber-200"
+        className="fixed bottom-4 right-4 z-30 flex cursor-pointer items-center gap-1.5 rounded-lg border border-amber-300 bg-amber-100 px-3 py-1.5 text-sm font-medium text-amber-900 shadow-sm transition-colors hover:bg-amber-200 sm:bottom-6 sm:right-6"
       >
         <FlaskConical size={14} />
         Demo tools

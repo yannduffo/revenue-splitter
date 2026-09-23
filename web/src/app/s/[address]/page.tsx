@@ -91,7 +91,7 @@ export default function SplitterPage() {
 
   //TODO : avant de rendre la page détail, il faudrait vérifier si le splitter est officiel (récupérable en intérrogeant "isOfficialSplitter" de lib/chain/factory.ts)
   return (
-    <main className="flex flex-col mx-auto max-w-275 p-6 gap-4">
+    <main className="flex flex-col mx-auto max-w-275 p-6 gap-4 pb-20">
       <div className="flex flex-col gap-2">
         <div className="flex gap-4 items-center">
           <div className='flex gap-2'>

@@ -23,7 +23,11 @@ export function ConnectButton() {
       <button
         onClick={() => injectedConnector && connect({ connector: injectedConnector })}
         disabled={isConnecting || !injectedConnector}
-        className="rounded-lg border border-rule bg-surface px-3 py-1.5 text-sm hover:border-muted disabled:opacity-50"
+        //no injected provider on mobile Safari : hide rather than show a dead button.
+        //wallet in-app browsers (MetaMask, Coinbase...) do inject one, so they keep it.
+        className={`rounded-lg border border-rule bg-surface px-3 py-1.5 text-sm hover:border-muted disabled:opacity-50 ${
+          injectedConnector ? '' : 'max-sm:hidden'
+        }`}
       >
         {isConnecting ? 'Connecting…' : injectedConnector ? 'Connect wallet' : 'No wallet found'}
       </button>

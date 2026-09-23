@@ -10,7 +10,7 @@ export function MessagePage({
   message: string;
 }) {
   return (
-    <main className="mx-auto flex max-w-275 flex-col gap-6 p-8">
+    <main className="mx-auto flex max-w-275 flex-col gap-6 p-8 pb-20">
       <div className="flex flex-col gap-3">
         <div className="flex gap-2">
           <Image src="/logo-no-txt.svg" alt="Logo" width={38} height={38} />
