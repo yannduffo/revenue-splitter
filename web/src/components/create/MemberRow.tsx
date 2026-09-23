@@ -27,24 +27,25 @@ export function MemberRow({
       className="border-b border-l-3 border-rule px-3 py-2 last:border-0"
       style={{borderLeftColor: tone}}
     >
-      <div className="grid grid-cols-[10px_120px_minmax(0,1fr)_90px_32px] items-center gap-2">
+      <div className="grid grid-cols-[10px_minmax(0,1fr)_90px_32px] items-center gap-2 sm:grid-cols-[10px_120px_minmax(0,1fr)_90px_32px]">
         <p className="text-sm text-muted">{memberNumber}</p>
         <input
           value={row.nickname}
           onChange={(e) => onChange({ nickname: e.target.value })}
-          placeholder="Label"
-          className="rounded-lg border border-rule bg-surface px-2 py-1.5 text-sm"
+          placeholder="Member name"
+          className="min-w-0 rounded-lg border border-rule bg-surface px-2 py-1.5 text-sm"
         />
         <input
           value={row.address}
           onChange={(e) => onChange({ address: e.target.value })}
           placeholder="0x…"
           spellCheck={false}
-          className={`rounded-lg border bg-surface px-2 py-1.5 font-mono text-sm ${
+          //only explicitly placed cell : auto-placement fills the rest in DOM order
+          className={`col-start-2 col-span-3 row-start-2 min-w-0 rounded-lg border bg-surface px-2 py-1.5 font-mono text-sm sm:col-auto sm:row-auto ${
             error?.address ? "border-accent" : "border-rule"
           }`}
         />
-        <div className="flex items-center gap-1">
+        <div className="flex min-w-0 items-center gap-1">
           <input
             value={row.share}
             onChange={(e) => onChange({ share: e.target.value })}

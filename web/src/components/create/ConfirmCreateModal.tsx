@@ -5,7 +5,6 @@ import type { MemberRowState } from "@/lib/create";
 import type { TxStatus } from "@/hooks/useTx";
 import type { TxError } from "@/lib/errors";
 import { TxButton } from "@/components/tx/TxButton";
-import { shortenAddress } from "@/lib/format";
 
 export function ConfirmCreateModal({
   open,
@@ -58,17 +57,19 @@ export function ConfirmCreateModal({
             <span>100% allocated</span>
           </div>
 
-          <div className="grid grid-cols-[max-content_minmax(0,1fr)_80px] overflow-hidden rounded-xl border border-rule bg-surface">
+          {/* scrolls on its own : the warning and the actions below stay visible */}
+          <div className="grid max-h-[35vh] grid-cols-[minmax(0,1fr)_80px] overflow-y-auto rounded-xl border border-rule bg-surface sm:grid-cols-[minmax(0,max-content)_minmax(0,1fr)_80px]">
             {rows.map((row) => (
               <div
                 key={row.id}
-                className="col-span-3 grid grid-cols-subgrid items-center gap-3 border-b border-rule px-3 py-2.5 last:border-b-0"
+                className="col-span-2 grid grid-cols-subgrid items-center gap-3 border-b border-rule px-3 py-2.5 last:border-b-0 sm:col-span-3"
               >
                 <p className="font-mono text-[12px]">
                   {row.nickname}
                 </p>
 
-                <p className="truncate font-mono text-[12px]">
+                {/* last screen before an irreversible tx : never hide characters */}
+                <p className="col-span-2 row-start-2 break-all font-mono text-[12px] sm:col-auto sm:row-auto sm:truncate sm:break-normal">
                   {row.address}
                 </p>
 

@@ -23,9 +23,11 @@ export function SplitterList({
 
       <div className="overflow-hidden rounded-xl border border-rule bg-surface">
         {!isLoading && entries.length > 0 && (
-          <div className="hidden sm:grid-cols-[minmax(0,1fr)_240px_100px] gap-2 border-b border-rule bg-paper/40 px-4 py-2 text-[10px] uppercase tracking-wide text-muted sm:grid">
+          <div className="grid grid-cols-[1fr_auto] gap-2 border-b border-rule bg-paper/40 px-4 py-2 text-[10px] uppercase tracking-wide text-muted sm:grid-cols-[minmax(0,1fr)_240px_100px]">
             <span>Splitter</span>
-            <span>Distribution</span>
+            {/* display:none removes it from grid placement, so the 2 remaining
+                headings land on the row's own 2 mobile columns */}
+            <span className="hidden sm:block">Distribution</span>
             <span className="text-right">Members</span>
           </div>
         )}

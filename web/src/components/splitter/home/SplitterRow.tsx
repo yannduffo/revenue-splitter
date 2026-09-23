@@ -18,8 +18,8 @@ export function SplitterRow({ splitter, role }: { splitter: Splitter; role: Spli
         <span className="font-mono text-sm group-hover:text-accent">
           {/* tail truncation would hide the end of the address, which is half of
               what people check : shorten keeps both ends */}
-          <span className="sm:hidden">{shortenAddress(splitter.address, 6)}</span>
-          <span className="hidden truncate sm:inline">{splitter.address}</span>
+          <span className="lg:hidden">{shortenAddress(splitter.address, 6)}</span>
+          <span className="hidden truncate lg:inline">{splitter.address}</span>
         </span>
         {isDemoSplitter(splitter.address) && <DemoBadge />}
         {role !== 'none' && (

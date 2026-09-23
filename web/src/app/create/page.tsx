@@ -69,7 +69,7 @@ export default function CreatePage() {
 
   //TODO : rendre la liste trop longue scrollable sur les membres pour que ça soit plus propre
   return (
-    <main className="mx-auto flex max-w-275 flex-col gap-4 p-8 pb-20">
+    <main className="mx-auto flex max-w-275 flex-col gap-4 p-4 pb-20 sm:p-8 sm:pb-20">
       <div className="flex flex-col gap-4">
         <div className='flex gap-2'>
           <Image
@@ -80,14 +80,14 @@ export default function CreatePage() {
           />
           <span className='text-2xl font-mono'>/ create </span>
         </div>
-        <p className="text-lg text-muted">
+        <p className="text-base text-muted sm:text-lg">
           Create a new splitter: list its members and set the share of incoming
           revenue each one receives
         </p>
       </div>
 
       <div className="overflow-hidden rounded-xl border border-rule bg-surface">
-        <div className="grid grid-cols-[10px_120px_minmax(0,1fr)_90px_32px] gap-2 border-b border-rule border-l-3 border-l-transparent bg-surface/40 px-3 py-2 text-[11px] uppercase tracking-wide text-muted">
+        <div className="hidden grid-cols-[10px_120px_minmax(0,1fr)_90px_32px] gap-2 border-b border-rule border-l-3 border-l-transparent bg-surface/40 px-3 py-2 text-[11px] uppercase tracking-wide text-muted sm:grid">
           <span />
           <span>Label</span>
           <span>Address</span>
