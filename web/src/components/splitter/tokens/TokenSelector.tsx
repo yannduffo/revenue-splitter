@@ -1,6 +1,7 @@
 import { ExternalLink } from "lucide-react";
 import type { SplitterToken } from "@/lib/chain/types";
 import { explorerUrl } from "@/lib/chain/config";
+import { formatAmount } from "@/lib/format";
 
 export function TokenSelector({
   tokens,
@@ -31,9 +32,19 @@ export function TokenSelector({
             <button
               type="button"
               onClick={() => onSelect(token.address)}
-              className="cursor-pointer px-3 py-1.5"
+              title={`${formatAmount(token.held, token.decimals, 18)} ${token.symbol} currently held`}
+              className="flex cursor-pointer items-baseline gap-2 px-3 py-1.5"
             >
               {token.symbol}
+              {/* held is balanceOf : anything claimed has left the contract, so it
+                  is exactly what is still unclaimed */}
+              <span
+                className={`font-mono text-xs ${
+                  isSelected ? 'text-paper/70' : 'text-muted'
+                }`}
+              >
+                {formatAmount(token.held, token.decimals)}
+              </span>
             </button>
 
             {url && (
