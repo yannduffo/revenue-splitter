@@ -71,15 +71,15 @@ export default function CreatePage() {
   return (
     <main className="mx-auto flex max-w-275 flex-col gap-4 p-4 pb-20 sm:p-8 sm:pb-20">
       <div className="flex flex-col gap-4">
-        <div className='flex gap-2'>
+        <h1 className='flex gap-2'>
           <Image
             src="/logo-no-txt.svg"
-            alt="Logo"
+            alt=""
             width={38}
             height={38}
           />
           <span className='text-2xl font-mono'>/ create </span>
-        </div>
+        </h1>
         <p className="text-base text-muted sm:text-lg">
           Create a new splitter: list its members and set the share of incoming
           revenue each one receives

@@ -27,15 +27,16 @@ export default function Home() {
     <main className="mx-auto flex max-w-275 flex-col gap-4 p-4 pb-20 sm:p-8 sm:pb-20">
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <div className='flex gap-2'>
+          <h1 className='flex gap-2'>
+            {/* alt="" : the header already carries the brand, here it is decoration */}
             <Image
               src="/logo-no-txt.svg"
-              alt="Logo"
+              alt=""
               width={38}
               height={38}
             />
             <span className='text-2xl font-mono'>/ home </span>
-          </div>
+          </h1>
           <Link
             href="/create"
             className="rounded-lg bg-accent px-3 py-1.5 text-sm text-paper"

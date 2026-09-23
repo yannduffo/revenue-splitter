@@ -30,11 +30,16 @@ export function ConfirmCreateModal({
   //TODO : voir comment ça réagit à une liste trop longue : rendre scrollable
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/30 px-4 pt-24">
-      <div className="w-full max-w-xl rounded-xl border border-rule bg-surface shadow-xl">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="confirm-create-title"
+        className="w-full max-w-xl rounded-xl border border-rule bg-surface shadow-xl"
+      >
         {/* Header */}
         <div className="flex items-start justify-between border-b border-rule p-5">
           <div>
-            <h2 className="text-lg">Review splitter</h2>
+            <h2 id="confirm-create-title" className="text-lg">Review splitter</h2>
             <p className="mt-1 text-sm text-muted">
               Check the allocation before creating it
             </p>

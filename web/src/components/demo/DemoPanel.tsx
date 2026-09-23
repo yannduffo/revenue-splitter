@@ -50,10 +50,10 @@ export function DemoPanel() {
             className="fixed right-0 top-0 z-50 flex h-full w-full flex-col overflow-y-auto border-l border-rule bg-paper shadow-lg sm:w-[380px]"
           >
             <div className="flex items-center justify-between border-b border-rule px-4 py-3">
-              <span className="flex items-center gap-2 text-sm font-medium">
+              <h2 className="flex items-center gap-2 text-sm font-medium">
                 <FlaskConical size={16} className="text-amber-700" />
                 Demo tools
-              </span>
+              </h2>
               <button
                 type="button"
                 onClick={() => setOpen(false)}

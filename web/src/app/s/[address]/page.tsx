@@ -95,10 +95,11 @@ export default function SplitterPage() {
     <main className="flex flex-col mx-auto max-w-275 p-4 gap-4 pb-20 sm:p-6 sm:pb-20">
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap gap-4 items-center">
-          <div className='flex gap-2'>
+          <h1 className='flex gap-2'>
+            {/* alt="" : the header already carries the brand, here it is decoration */}
             <Image
               src="/logo-no-txt.svg"
-              alt="Logo"
+              alt=""
               width={38}
               height={38}
             />
@@ -111,7 +112,7 @@ export default function SplitterPage() {
               <span className="lg:hidden">{shortenAddress(splitter, 4)}</span>
               <span className="hidden lg:inline">{splitter}</span>
             </span>
-          </div>
+          </h1>
           {explorerUrl('address', splitter) && (
             <a
               href={explorerUrl('address', splitter)}
@@ -133,24 +134,24 @@ export default function SplitterPage() {
         </p>
         */}
       </div>
-      <div className="flex flex-col gap-2">
-        <p className="text-xs text-muted">Shares distribution : </p>
+      <section className="flex flex-col gap-2">
+        <h2 className="text-xs text-muted">Shares distribution : </h2>
         <AllocationBar members={info.members} />
-      </div>
+      </section>
       <div>
         {!tokens?.length ? (
-          <div className="flex flex-col gap-1">
-            <p className="text-xs text-muted">Splitter tokens :</p>
+          <section className="flex flex-col gap-1">
+            <h2 className="text-xs text-muted">Splitter tokens :</h2>
             <p className="rounded-xl border border-rule bg-surface p-6 text-sm text-muted">
               No tokens received yet. Send any ERC-20 to the address above.
             </p>
             <AddTokenInput onAdd={addToken} />
-          </div>
+          </section>
         ) : activeToken ? (
           <div className="space-y-4">
-            <div className="flex flex-col gap-1">
+            <section className="flex flex-col gap-1">
               <div className="flex items-center justify-between">
-                <p className="text-xs text-muted">Splitter tokens :</p>
+                <h2 className="text-xs text-muted">Splitter tokens :</h2>
 
                 <button
                   type="button"
@@ -188,9 +189,9 @@ export default function SplitterPage() {
                 selected={activeToken.address}
                 onSelect={setToken}
               />
-            </div>
-            <div className="flex flex-col gap-2">
-              <p className="text-xs text-muted">Members status :</p>
+            </section>
+            <section className="flex flex-col gap-2">
+              <h2 className="text-xs text-muted">Members status :</h2>
               <MemberGrid
                 splitter={splitter}
                 members={info.members}
@@ -203,11 +204,11 @@ export default function SplitterPage() {
                 connectedAddress={connectedAddress}
                 canAct={canAct}
               />
-              </div>
-              <div className="flex flex-col gap-2">
-                <p className="text-xs text-muted">Activity :</p>
+              </section>
+              <section className="flex flex-col gap-2">
+                <h2 className="text-xs text-muted">Activity :</h2>
                 <ActivityTable entries={history} tokens={tokens} isLoading={isLoadingHistory} />
-              </div>
+              </section>
           </div>
         ) : null}
       </div>
