@@ -1,0 +1,41 @@
+name: Foundry CI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "contracts/**"
+
+  pull_request:
+    paths:
+      - "contracts/**"
+
+defaults:
+  run:
+    working-directory: contracts
+
+jobs:
+  check:
+    name: Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive     #to import dev libs (openzeppelin, ...)
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      - name: Check formatting
+        run: forge fmt --check
+
+      - name: Build contracts
+        run: forge build --sizes
+
+      - name: Run Tests
+        run: forge test -vvv
