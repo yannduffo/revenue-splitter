@@ -11,6 +11,8 @@ on:
     paths:
       - "contracts/**"
 
+  workflow_dispatch:
+
 defaults:
   run:
     working-directory: contracts
