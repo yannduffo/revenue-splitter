@@ -1,8 +1,9 @@
 import { onchainTable } from "ponder";
 
-export const example = onchainTable("example", (t) => ({
-  id: t.text().primaryKey(),
-  name: t.text(),
+export const splitter = onchainTable("splitter", (t) => ({
+  address: t.hex().primaryKey(),
+  creator: t.hex().notNull(),
+  createdAtBlock: t.bigint().notNull(),
 }));
 
 export const incomingTransfer = onchainTable(

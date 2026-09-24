@@ -1,8 +1,12 @@
-import { createConfig } from "ponder";
+import { createConfig, rateLimit } from "ponder";
+import { http } from "viem";
 
 import { erc20TransferAbi } from "./abis/ERC20";
+import { splitterFactoryAbi } from "./abis/SplitterFactory";
 
-const SPLITTER_A = "0xDdbea380B9340978F7Cac49fd050A5A85a1672FA" as const;
+const FACTORY_ADDRESS = "0x2A8B524C1fe5ff0687E642A5611BE907cfe902e0" as const;
+const FACTORY_BLOCK = 11_667_295;
+const TEST_END_BLOCK = 11_667_614; //320 block to test
 
 export default createConfig({
   database: {
@@ -13,26 +17,40 @@ export default createConfig({
   chains: {
     sepolia: {
       id: 11155111,
-      rpc: process.env.PONDER_RPC_URL_11155111,
+      rpc: rateLimit(
+        http(process.env.PONDER_RPC_URL_11155111),
+        {
+          requestsPerSecond: 1,
+        },
+      ),
+      pollingInterval: 12_000,
     },
   },
 
   contracts: {
-    IncomingTransfer: {
+    SplitterFactory: {
+      chain: "sepolia",
+      abi: splitterFactoryAbi,
+      address: FACTORY_ADDRESS,
+
+      //block window
+      startBlock: FACTORY_BLOCK,
+      endBlock: TEST_END_BLOCK,
+    },
+
+    //getting all ERC20 transfers
+    AllTransfers: {
       chain: "sepolia",
       abi: erc20TransferAbi,
 
-      //no address property -> aim is to test wildcard indexing for our token discovery
       filter: {
         event: "Transfer",
-        args: {
-          to: SPLITTER_A,
-        },
+        args: {},
       },
 
       //block window
-      startBlock: 11_667_608,
-      endBlock: 11_667_614,
+      startBlock: FACTORY_BLOCK,
+      endBlock: TEST_END_BLOCK,
     },
   },
 });
