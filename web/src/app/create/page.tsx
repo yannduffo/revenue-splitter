@@ -69,7 +69,7 @@ export default function CreatePage() {
 
   //TODO : rendre la liste trop longue scrollable sur les membres pour que ça soit plus propre
   return (
-    <main className="mx-auto flex max-w-275 flex-col gap-4 p-4 pb-20 sm:p-8 sm:pb-20">
+    <main className="mx-auto flex max-w-275 flex-col gap-4 p-4 sm:p-8">
       <div className="flex flex-col gap-4">
         <h1 className='flex gap-2'>
           <Image

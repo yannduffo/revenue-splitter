@@ -6,6 +6,7 @@ import { Providers } from "@/lib/providers";
 import { ConnectButton } from "@/components/wallet/ConnectButton";
 import { NetworkBadge } from "@/components/NetworkBadge";
 import { DemoPanel } from "@/components/demo/DemoPanel";
+import { SiteFooter } from "@/components/SiteFooter";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -33,7 +34,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body>
+      <body className="flex min-h-dvh flex-col">
         <Providers>
           <header className="border-b border-rule">
             <div className="mx-auto flex items-center justify-between px-4 py-4 sm:px-8">
@@ -61,7 +62,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               </div>
             </div>
           </header>
-          {children}
+          {/* flex-1 : pushes the footer to the bottom on short pages */}
+          <div className="flex-1">{children}</div>
+          <SiteFooter />
           <DemoPanel />
         </Providers>
       </body>

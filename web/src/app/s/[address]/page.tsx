@@ -105,7 +105,7 @@ export default function SplitterPage() {
   if (!info) return <p className="p-8 text-muted">Loading…</p>;
 
   return (
-    <main className="flex flex-col mx-auto max-w-275 p-4 gap-4 pb-20 sm:p-6 sm:pb-20">
+    <main className="flex flex-col mx-auto max-w-275 p-4 gap-4 sm:p-6">
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap gap-4 items-center">
           <h1 className='flex gap-2'>
