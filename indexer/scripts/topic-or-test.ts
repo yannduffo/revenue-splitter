@@ -2,8 +2,8 @@ import { bytesToHex, createPublicClient, http, parseAbiItem, type Address } from
   import { sepolia } from "viem/chains";
 
   // ---------------------------------------------------------------- config
-  const RPC_URL = process.env.PONDER_RPC_URL_11155111;
-  if (!RPC_URL) throw new Error("PONDER_RPC_URL_11155111 is missing (run with --env-file=.env.local)");
+  const RPC_URL = process.env.RPC_URL;
+  if (!RPC_URL) throw new Error("RPC_URL is missing (run with --env-file=.env.local)");
 
   const FACTORY_BLOCK = 11_667_295n;
   const WINDOW = 10_000n; // Infura's max block range for eth_getLogs

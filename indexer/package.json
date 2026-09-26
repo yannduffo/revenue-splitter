@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "node --env-file=.env.local src/index.ts",
     "typecheck": "tsc"
   },
   "engines": {
