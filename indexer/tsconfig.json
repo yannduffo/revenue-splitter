@@ -1,26 +1,22 @@
 {
-  "compilerOptions": {
-    // Type checking
-    "strict": true,
-    "noUncheckedIndexedAccess": true,
+    "compilerOptions": {
+      "strict": true,
+      "noUncheckedIndexedAccess": true,
 
-    // Interop constraints
-    "verbatimModuleSyntax": false,
-    "esModuleInterop": true,
-    "isolatedModules": true,
-    "allowSyntheticDefaultImports": true,
-    "resolveJsonModule": true,
+      "target": "ES2023",
+      "lib": ["ES2023"],
+      "module": "NodeNext",
+      "moduleResolution": "NodeNext",
+      "types": ["node"],
 
-    // Language and environment
-    "moduleResolution": "bundler",
-    "module": "ESNext",
-    "noEmit": true,
-    "lib": ["ES2022"],
-    "target": "ES2022",
+      // Node runs the .ts directly, tsc only type-checks
+      "noEmit": true,
+      "allowImportingTsExtensions": true,
+      "verbatimModuleSyntax": true,
+      "erasableSyntaxOnly": true,
 
-    // Skip type checking for node modules
-    "skipLibCheck": true
-  },
-  "include": ["./**/*.ts"],
-  "exclude": ["node_modules"]
-}
+      "skipLibCheck": true
+    },
+    "include": ["**/*.ts"],
+    "exclude": ["node_modules"]
+  }
