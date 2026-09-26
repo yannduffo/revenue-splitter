@@ -91,3 +91,9 @@ export async function getClaims(splitters: Address[], fromBlock: bigint, toBlock
 
   return results.flat();
 }
+
+// get the block heigth of the last finalized clock (~85 block on sepolia)
+export async function getFinalizedBlockNumber() {
+  const block = await paced(BLOCK_PAUSE_MS, () => client.getBlock({ blockTag: "finalized" }));
+  return block.number;
+}

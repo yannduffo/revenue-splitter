@@ -12,6 +12,9 @@ const lower = <T extends string>(value: T) => value.toLowerCase() as T;
 * crash mid-range leaves the database exactly as it was.
 */
 export async function syncRange(fromBlock: bigint, toBlock: bigint) {
+  // hash of toBlock BEFORE reading the logs, compared again after (see step 3)
+  const toHashBefore = (await getBlock(toBlock)).hash;
+
   // --- 1. check if splitters were created in this range ----
   const created = await getCreatedLogs(fromBlock, toBlock); //splitter from this block range
   const known = await getSplitterAddresses(); //old splitters already known
@@ -23,8 +26,9 @@ export async function syncRange(fromBlock: bigint, toBlock: bigint) {
   const claims = await getClaims(splitters, fromBlock, toBlock);
 
   // --- 3. block timestamps (Infura doesn't return blockTimestamp in getLogs) ---
+  const allLogs = [...created, ...deposits, ...claims];
   const blockNumbers = new Set<bigint>([toBlock]);
-  for (const l of [...created, ...deposits, ...claims]) blockNumbers.add(l.blockNumber);
+  for (const l of allLogs) blockNumbers.add(l.blockNumber);
 
   const blocks = new Map<bigint, { hash: Hex; time: Date }>();
   for (const n of blockNumbers) {
@@ -32,6 +36,19 @@ export async function syncRange(fromBlock: bigint, toBlock: bigint) {
     blocks.set(n, { hash: block.hash, time: new Date(Number(block.timestamp) * 1000) });
   }
   const timeOf = (n: bigint) => blocks.get(n)!.time;
+
+  // the chain must not have moved while we were reading it:
+  //  - toBlock still has the hash it had before the getLogs
+  //  - every log belongs to the block we just fetched (same hash)
+  // otherwise we throw before writing anything: the tick fails and the range is replayed
+  if (blocks.get(toBlock)!.hash !== toHashBefore) {
+    throw new Error(`reorg while syncing [${fromBlock}, ${toBlock}]: #${toBlock} changed`);
+  }
+  for (const l of allLogs) {
+    if (l.blockHash !== blocks.get(l.blockNumber)!.hash) {
+      throw new Error(`reorg while syncing [${fromBlock}, ${toBlock}]: log from a stale #${l.blockNumber}`);
+    }
+  }
 
   // --- 4. creating the db rows from the log values (keys = column names) ---
   const splitterRows = created.map((l) => ({

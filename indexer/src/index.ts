@@ -1,7 +1,8 @@
 //the loop
 import { CONFIRMATIONS, FACTORY_BLOCK, POLL_MS, WINDOW } from "./config.ts";
-import { getCursor, sql } from "./db.ts";
-import { getHead } from "./rpc.ts";
+import { getCursor, pruneCheckpoints, sql } from "./db.ts";
+import { handleReorg } from "./reorg.ts";
+import { getFinalizedBlockNumber, getHead } from "./rpc.ts";
 import { syncRange } from "./sync.ts";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -9,6 +10,9 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 // catches up from the cursor to (head - CONFIRMATIONS), in windows of WINDOW blocks.
 // The initial sync and the steady state are the same loop: only the gap size differs.
 async function tick() {
+  // first: is what we already indexed still on the canonical chain? (may move the cursor back)
+  await handleReorg();
+
   const target = (await getHead()) - CONFIRMATIONS;
   let cursor = (await getCursor()) ?? FACTORY_BLOCK - 1n;
 
@@ -23,6 +27,8 @@ async function tick() {
 
     cursor = to;
   }
+
+  await pruneCheckpoints(await getFinalizedBlockNumber());
 }
 
 let running = true;
