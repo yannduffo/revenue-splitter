@@ -12,6 +12,7 @@ import { useMemberDetail } from "@/hooks/useMemberDetail";
 import { useInvalidateOnInterval } from "@/hooks/useInvalidateOnInterval";
 import { useConnectedMember } from "@/hooks/useConnectedMember";
 import { useHistory } from "@/hooks/useHistory";
+import { useIsOfficialSplitter } from "@/hooks/useIsOfficialSplitter";
 //components
 import { AllocationBar } from "@/components/splitter/AllocationBar";
 import { TokenSelector } from "@/components/splitter/tokens/TokenSelector";
@@ -19,12 +20,11 @@ import { AddTokenInput } from "@/components/splitter/tokens/AddTokenInput";
 import { MemberGrid } from "@/components/splitter/members/MemberGrid";
 import { MessagePage } from "@/components/MessagePage";
 import { DemoBadge } from "@/components/splitter/DemoBadge";
-import { isDemoSplitter, explorerUrl } from "@/lib/chain/config";
-import { shortenAddress } from "@/lib/format";
-import { useSplitterBlock } from "@/hooks/useSplitterBlock";
-import { useIsOfficialSplitter } from "@/hooks/useIsOfficialSplitter";
 import { ActivityTable } from "@/components/splitter/ActivityTable";
 import { Plus, X, ExternalLink } from "lucide-react";
+//lib
+import { isDemoSplitter, explorerUrl } from "@/lib/chain/config";
+import { shortenAddress } from "@/lib/format";
 
 export default function SplitterPage() {
   const params = useParams<{ address: string }>();
@@ -42,31 +42,22 @@ export default function SplitterPage() {
 
   const { data: official } = useIsOfficialSplitter(splitter);
   const { data: info } = useSplitter(splitter);
-  const { data: fromBlock } = useSplitterBlock(splitter);
 
-  const { data: tokens } = useSplitterTokens(splitter, extraToken, fromBlock);
-  const { data: detail, isLoading: isLoadingDetail } = useMemberDetail(
-    splitter, openMember, tokens, fromBlock
-  )
+  const { data: tokens } = useSplitterTokens(splitter, extraToken);
+  const { data: detail, isLoading: isLoadingDetail } = useMemberDetail(splitter, openMember, tokens)
 
-  const { data: history, isLoading : isLoadingHistory} = useHistory(splitter, fromBlock)
+  const { data: history, isLoading : isLoadingHistory} = useHistory(splitter)
 
-  //only using 'token-balances' and 'member-detail' keys because 'splitter-tokens' key would "overcall" getlogs calls
-  // adding 'history' key would garanty an fresh history but would also overload the API
-  useInvalidateOnInterval(["token-balances", "member-detail"]);
+  // 'history' comes from the indexer database: refreshing it is free.
+  // 'splitter-tokens' stays out: its cost is 5 eth_calls per token (symbol, decimals, balances)
+  useInvalidateOnInterval(["token-balances", "member-detail", "history"]);
 
   const activeToken = useMemo(
     () => tokens?.find((t) => t.address === token) ?? tokens?.[0],
     [tokens, token],
   );
 
-  const { data: balances } = useTokenBalances(
-    splitter,
-    activeToken?.address,
-    info?.members,
-    fromBlock
-  );
-
+  const { data: balances } = useTokenBalances(splitter, activeToken?.address, info?.members);
   const {address: connectedAddress, isMember, canAct} = useConnectedMember(info?.members)
 
   const handleToggle = (member?: Address) => {

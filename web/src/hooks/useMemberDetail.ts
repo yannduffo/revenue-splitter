@@ -9,12 +9,11 @@ export function useMemberDetail(
   splitter?: Address,
   member?: Address,
   tokens?: SplitterToken[],
-  fromBlock?:bigint
 ) {
   const client = usePublicClient()
   return useQuery({
-    queryKey: ['member-detail', splitter, member, fromBlock?.toString()],
-    queryFn: () => getMemberDetail(client!, splitter!, member!, tokens!, fromBlock!),
-    enabled: Boolean(client && splitter && member && tokens?.length && fromBlock !== undefined), //enable over member make the query doesn't happen until we print de member card detail
+    queryKey: ['member-detail', splitter, member],
+    queryFn: () => getMemberDetail(client!, splitter!, member!, tokens!),
+    enabled: Boolean(client && splitter && member && tokens?.length), //enable over member make the query doesn't happen until we print de member card detail
   })
 }

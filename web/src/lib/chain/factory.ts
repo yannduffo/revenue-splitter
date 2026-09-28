@@ -1,76 +1,24 @@
-import { getAbiItem, type Address, type PublicClient } from "viem";
-import { splitterFactoryAbi } from "@/lib/generated";
-import { FACTORY_ADDRESS, FACTORY_BLOCK } from "./config";
+import type { Address, PublicClient } from "viem";
+import { splitterFactoryAbi } from "../generated";
+import { FACTORY_ADDRESS } from "./config";
 import type { Splitter } from "./types";
-import { collectLogs } from "./logs";
+import { getJson } from "./api";
 
-const createdEvent = getAbiItem({
-  abi: splitterFactoryAbi,
-  name: "SplitterCreated",
-});
+//new ApiSplitter type which is the Splitter type with createdAtBlock as a string (to match API return)
+type ApiSplitter = Omit<Splitter, 'createdAtBlock'> & { createdAtBlock: string }
 
-//Reading the logs since Facroty creating to list all splitter ever created
-export async function listSplitters(client: PublicClient): Promise<Splitter[]> {
-  const logs = await collectLogs(client, FACTORY_BLOCK, (fromBlock, toBlock) =>
-    client.getLogs({
-      address: FACTORY_ADDRESS,
-      event: createdEvent,
-      fromBlock,
-      toBlock,
-    }),
-  );
-
-  //from the corresponding log, we retrun a Splitter table
-  return logs
-    .map((log) => {
-      const { splitter, creator, members, shareDistribution } = log.args;
-      if (!splitter || !creator || !members || !shareDistribution)
-        return undefined;
-
-      //retrunring Splitter type variable (built with the map on logs event)
-      return {
-        address: splitter,
-        creator,
-        createdAtBlock: log.blockNumber,
-        members: members
-          .map((address, i) => ({
-            address,
-            shareBps: Number(shareDistribution[i]),
-          }))
-          .sort((a, b) => b.shareBps - a.shareBps), //decreasing sort
-      } satisfies Splitter;
-    })
-    .filter((s): s is Splitter => s !== undefined)
-    .reverse(); //sort latest first
+//get every splitter created by the factory (latest first, members sorted by decreasing share order)
+export async function listSplitters(): Promise<Splitter[]> {
+  const splitters = await getJson<ApiSplitter[]>('/api/splitters')
+  return splitters.map((s) => ({...s, createdAtBlock: BigInt(s.createdAtBlock)}))
 }
 
-//js function to call isOfficialSplitter solidity func
-export async function isOfficialSplitter(
-  client: PublicClient,
-  address:Address,
-): Promise<boolean> {
+//even with the indexer, we are still using direct RPC calls to call solidity funcs
+export async function isOfficialSplitter(client: PublicClient, address: Address): Promise<boolean> {
   return client.readContract({
     address: FACTORY_ADDRESS,
     abi: splitterFactoryAbi,
-    functionName: 'isOfficialSplitter',
+    functionName: "isOfficialSplitter",
     args: [address]
   })
-}
-
-//getting the splitter block creating heigth to optimise futur logs exploration
-export async function getSplitterBlock(
-  client: PublicClient,
-  splitter: Address,
-): Promise<bigint> {
-  const logs = await collectLogs(client, FACTORY_BLOCK, (fromBlock, toBlock) =>
-    client.getLogs({
-      address: FACTORY_ADDRESS,
-      event: createdEvent,
-      args: { splitter }, //splitter address is indexed on createdEvent
-      fromBlock,
-      toBlock,
-    }),
-  )
-
-  return logs[0]?.blockNumber ?? FACTORY_BLOCK
 }

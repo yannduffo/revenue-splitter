@@ -12,18 +12,6 @@ export async function getSplitter(
     functionName: "getMembers",
   });
 
-  //TODO: put the multicall back when we deploy on testnet
-  //TODO: we could also deploy multicall conrtract on the anvil chain in our seedLocal.s.sol
-  // const shares = await client.multicall({
-  //   contracts: memberAddresses.map((member) => ({
-  //     address,
-  //     abi: splitterAbi,
-  //     functionName: "getMemberShares",
-  //     args: [member],
-  //   })),
-  //   allowFailure: false, //return object are 'result' and not {status, result}
-  // });
-
   const shares = await Promise.all(
     memberAddresses.map((member) =>
       client.readContract({

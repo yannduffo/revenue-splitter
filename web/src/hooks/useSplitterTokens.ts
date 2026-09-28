@@ -2,24 +2,21 @@
 
 import { usePublicClient } from "wagmi"
 import { useQuery } from "@tanstack/react-query"
-import { useSplitterBlock } from "./useSplitterBlock"
 import type { Address } from "viem"
 import { discoverTokens, getSplitterTokens } from "@/lib/chain/tokens"
-//import { DEV_TOKENS } from "@/lib/chain/config"
 
 export function useSplitterTokens(
   splitter?: Address,
   extra: Address[] = [],
-  fromBlock?: bigint
 ) {
   const client = usePublicClient()
   const extraKey = extra.map((t) => t.toLowerCase()).sort().join(',')
 
   //querying lib/chain/tokens.ts/getSplitterTokens()
   return useQuery({
-    queryKey: ['splitter-tokens', splitter, extraKey, fromBlock?.toString()],
+    queryKey: ['splitter-tokens', splitter, extraKey],
     queryFn: async () => {
-      const discovered = await discoverTokens(client!, splitter!, fromBlock!)
+      const discovered = await discoverTokens(splitter!)
 
       const seen = new Set(discovered.map((t) => t.toLowerCase()))
       const merged = [...discovered]
@@ -30,14 +27,6 @@ export function useSplitterTokens(
 
       return getSplitterTokens(client!, splitter!, merged)
     },
-    enabled: Boolean(client && splitter && fromBlock !== undefined),
+    enabled: Boolean(client && splitter),
   })
-
-  /* DEV PURPOSE WITH FIXED TOKEN LIST
-  return useQuery({
-    queryKey: ['splitter-tokens', splitter],
-    queryFn: () => getSplitterTokens(client!, splitter!, DEV_TOKENS),
-    enabled: Boolean(client && splitter), //checking existance before lunching query
-  })
-  */
 }

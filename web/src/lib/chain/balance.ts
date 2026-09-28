@@ -1,9 +1,7 @@
-import { getAbiItem, type Address, type PublicClient } from "viem";
+import type {Address, PublicClient } from "viem";
 import { splitterAbi } from "@/lib/generated";
 import type { Member, MemberBalance, SplitterToken } from "./types";
-import { collectLogs } from "./logs";
-
-const claimedEvent = getAbiItem({ abi: splitterAbi, name: "Claimed" });
+import { getJson } from "./api";
 
 export type MemberTokenRow = {
   token: Address,
@@ -14,15 +12,24 @@ export type MemberTokenRow = {
   claimed:bigint
 }
 
+//total claimed per (token, member) pair, one row per pair (indexer)
+type ClaimedRow = { token: Address, member: Address, amount: string }
+
+//get all claim for a designated splitter from the indexer
+function getClaimed(splitter: Address): Promise<ClaimedRow[]>{
+  return getJson<ClaimedRow[]>(`/api/splitters/${splitter}/claimed`)
+}
+
+const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase()
+
 // Get all member related balances (pending, claimed) to the designated token
 export async function getTokenBalances(
   client: PublicClient,
   splitter: Address,
   token: Address,
   members: Member[],
-  fromBlock: bigint
 ): Promise<MemberBalance[]> {
-  const [pendings, logs] = await Promise.all([
+  const [pendings, claimed] = await Promise.all([
     Promise.all(
       members.map((m) =>
         client.readContract({
@@ -33,24 +40,17 @@ export async function getTokenBalances(
         })
       )
     ),
-    collectLogs(client, fromBlock, (from, to) =>
-      client.getLogs({
-        address: splitter,
-        event: claimedEvent,
-        args: { token }, //args: {token} filter on indexed parameters
-        fromBlock: from,
-        toBlock: to,
-      }),
-    )
+    getClaimed(splitter),
   ])
 
-  const claimedBy = new Map<string, bigint>()
-  for (const log of logs) {
-    const { member, amount } = log.args
-    if (!member || amount === undefined) continue
-    claimedBy.set(member.toLowerCase(), (claimedBy.get(member.toLowerCase()) ?? 0n) + amount)
-  }
+  //the API already sums per (token, member): keep this token's rows, key them by member
+  const claimedBy = new Map(
+    claimed
+      .filter((c) => same(c.token, token))
+      .map((c) => [c.member.toLowerCase(), BigInt(c.amount)])
+  )
 
+  //returning the final MemberBalance table
   return members.map((m, i) => ({
     member: m.address,
     pending: pendings[i],
@@ -58,14 +58,14 @@ export async function getTokenBalances(
   }))
 }
 
+// pending: live view calls. claimed: indexer
 export async function getMemberDetail(
   client: PublicClient,
   splitter: Address,
   member: Address,
   tokens: SplitterToken[],
-  fromBlock: bigint
 ): Promise<MemberTokenRow[]> {
-  const [pendings, logs] = await Promise.all([
+  const [pendings, claimed] = await Promise.all([
     Promise.all(
       tokens.map((t) =>
         client.readContract({
@@ -76,24 +76,15 @@ export async function getMemberDetail(
         }),
       ),
     ),
-    collectLogs(client, fromBlock, (from, to) =>
-      client.getLogs({
-        address: splitter,
-        event: claimedEvent,
-        args: { member },
-        fromBlock: from,
-        toBlock: to,
-      }),
-    ),
+    getClaimed(splitter),
   ])
 
-  const claimedByToken = new Map<string, bigint>()
-  for (const log of logs) {
-    const { token, amount } = log.args
-    if (!token || amount === undefined) continue
-    const key = token.toLowerCase()
-    claimedByToken.set(key, (claimedByToken.get(key) ?? 0n) + amount)
-  }
+  // same table, filtered the other way: this member's rows, keyed by token
+  const claimedByToken = new Map(
+    claimed
+      .filter((c) => same(c.member, member))
+      .map((c) => [c.token.toLowerCase(), BigInt(c.amount)]),
+  )
 
   return tokens.map((t, i) => ({
     token: t.address,

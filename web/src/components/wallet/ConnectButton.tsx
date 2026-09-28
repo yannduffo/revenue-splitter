@@ -1,6 +1,6 @@
 'use client'
 
-import { useAccount, useConnect, useDisconnect, useChainId, useSwitchChain } from "wagmi"
+import { useAccount, useConnect, useDisconnect, useSwitchChain } from "wagmi"
 import { useMounted } from "@/hooks/useMounted";
 import { EXPECTED_CHAIN } from "@/lib/chain/config";
 import { shortenAddress } from "@/lib/format";

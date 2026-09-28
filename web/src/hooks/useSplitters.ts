@@ -1,7 +1,6 @@
 'use client'
 
 import { useMemo } from "react"
-import { usePublicClient } from "wagmi"
 import { useQuery } from "@tanstack/react-query"
 import { listSplitters } from "@/lib/chain/factory"
 import { useConnectedMember } from "./useConnectedMember"
@@ -9,14 +8,12 @@ import { useConnectedMember } from "./useConnectedMember"
 export type SplitterRole = 'creator' | 'member' | 'none'
 
 export function useSplitters() {
-  const client = usePublicClient()
   const { address } = useConnectedMember()
 
   //calling listSplitters from lib/ to get the table of all splitters
   const query = useQuery({
     queryKey: ['splitters'],
-    queryFn: () => listSplitters(client!),
-    enabled: Boolean(client)
+    queryFn: listSplitters
   })
 
   //checking connected user "role" in each splitters (splitter table = query.data)

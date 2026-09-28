@@ -6,7 +6,6 @@ export const EXPECTED_CHAIN = TARGET_CHAIN
 
 type Deployment = {
   factory: Address,
-  factoryBlock: bigint,
   //EIP-1167 implementation : splitters are clones, their own bytecode is unreadable
   implementation?: Address,
   demoSplitterA?: Address,
@@ -25,12 +24,10 @@ const parseAddressList = (raw?: string): Address[] =>
 const DEPLOYMENTS: Record<number, Deployment> = {
   31337: {
     factory: process.env.NEXT_PUBLIC_ANVIL_FACTORY as Address,
-    factoryBlock: BigInt(process.env.NEXT_PUBLIC_ANVIL_FACTORY_BLOCK ?? '0'),
     implementation: process.env.NEXT_PUBLIC_ANVIL_IMPLEMENTATION as Address | undefined,
   },
   11155111: {
     factory: process.env.NEXT_PUBLIC_SEPOLIA_FACTORY as Address,
-    factoryBlock: BigInt(process.env.NEXT_PUBLIC_SEPOLIA_FACTORY_BLOCK ?? '0'),
     implementation: process.env.NEXT_PUBLIC_SEPOLIA_IMPLEMENTATION as Address | undefined,
     demoSplitterA: process.env.NEXT_PUBLIC_SEPOLIA_DEMO_SPLITTER_A as Address | undefined,
     demoSplitterB: process.env.NEXT_PUBLIC_SEPOLIA_DEMO_SPLITTER_B as Address | undefined,
@@ -42,7 +39,6 @@ const DEPLOYMENTS: Record<number, Deployment> = {
 export const DEPLOYMENT = DEPLOYMENTS[EXPECTED_CHAIN.id]
 
 export const FACTORY_ADDRESS = DEPLOYMENT.factory
-export const FACTORY_BLOCK = DEPLOYMENT.factoryBlock
 export const IMPLEMENTATION_ADDRESS = DEPLOYMENT.implementation
 export const DEMO_SPLITTER_A = DEPLOYMENT.demoSplitterA
 export const DEMO_SPLITTER_B = DEPLOYMENT.demoSplitterB
