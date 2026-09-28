@@ -1,9 +1,9 @@
-import type { Address } from "viem";
+import {type Address, isAddress } from "viem";
 
 //helper to check if the asked env variable is actually set
 function required(name: string): string{
   const value = process.env[name];
-  if (!value) throw new Error(`${name} is missing (run with --env-file=.env.local)`);
+  if (!value) throw new Error(`${name} is missing (locally: .env.local, in Docker: the compose environment)`);
 
   return value;
 }
@@ -11,13 +11,15 @@ function required(name: string): string{
 export const RPC_URL = required("RPC_URL");
 export const DATABASE_URL = required("DATABASE_URL");
 
-//? pourquoi pas dans le env ?
-export const FACTORY_ADDRESS: Address = "0x2A8B524C1fe5ff0687E642A5611BE907cfe902e0";
-export const FACTORY_BLOCK = 11_667_295n;
+//deployment-specific: which factory to index, and from which block
+const factory = required("FACTORY_ADDRESS");
+if (!isAddress(factory)) throw new Error(`FACTORY_ADDRESS is not an address: ${factory}`);
+export const FACTORY_ADDRESS: Address = factory;
+export const FACTORY_BLOCK = BigInt(required("FACTORY_BLOCK"));
 
 export const WINDOW = 10_000n; //infura max block range for eth_getLogs
 export const BATCH_SIZE = 500; //addresses per OR queries : theorical limit of number of addresses in one Infura request
-export const CONFIRMATIONS = 5n; // stay N blocks behind the head (reorg will improve that)
+export const CONFIRMATIONS = BigInt(process.env.CONFIRMATIONS ?? "5"); // stay N blocks behind the head (0 on anvil cause it mines a block when a tx arrives)
 
 export const POLL_MS = 60_000; //pool every 60s -> 1,3M Infura credits a day
 

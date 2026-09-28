@@ -4,8 +4,7 @@ import { getCursor, pruneCheckpoints, sql } from "./db.ts";
 import { handleReorg } from "./reorg.ts";
 import { getFinalizedBlockNumber, getHead } from "./rpc.ts";
 import { syncRange } from "./sync.ts";
-
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+import { setTimeout as sleep } from "node:timers/promises";
 
 // catches up from the cursor to (head - CONFIRMATIONS), in windows of WINDOW blocks.
 // The initial sync and the steady state are the same loop: only the gap size differs.
@@ -31,22 +30,26 @@ async function tick() {
   await pruneCheckpoints(await getFinalizedBlockNumber());
 }
 
-let running = true;
+const stopping = new AbortController();
 
-// ctrl-c: finish the current tick, then close the Postgres pool
-process.on("SIGINT", () => {
-  console.log("stopping after the current tick…");
-  running = false;
-});
+for (const signal of ["SIGINT", "SIGTERM"] as const) { //SIGTERM for docker
+  process.on(signal, () => {
+    console.log(`${signal}: stopping after the current tick...`);
+    stopping.abort();
+  });
+}
 
-// a failed tick is simply retried at the next one: ranges are atomic
-while (running) {
+//a failed tick is simply retried at the next one : reanges are atomic
+while (!stopping.signal.aborted) {
   try {
     await tick();
-  } catch (error) {
-    console.error("tick failed:", error);
   }
-  if (running) await sleep(POLL_MS);
+  catch(error) {
+    console.error("tick failed", error);
+  }
+  //an aborted sleep rejects -> "wake up now" not error
+  await sleep(POLL_MS, undefined, {signal: stopping.signal}).catch(() => {})
 }
 
 await sql.end();
+console.log("stopped");

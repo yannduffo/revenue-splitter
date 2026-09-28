@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
+import pkg from "../../package.json"
 
 import { Providers } from "@/lib/providers";
 import { ConnectButton } from "@/components/wallet/ConnectButton";
@@ -64,7 +65,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           </header>
           {/* flex-1 : pushes the footer to the bottom on short pages */}
           <div className="flex-1">{children}</div>
-          <SiteFooter />
+          <SiteFooter version={pkg.version} />
           <DemoPanel />
         </Providers>
       </body>

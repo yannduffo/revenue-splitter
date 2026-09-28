@@ -36,7 +36,7 @@ function ContractLink({ label, address }: { label: string; address: Address }) {
   );
 }
 
-export function SiteFooter() {
+export function SiteFooter({version}: {version:string}) {
   return (
     //bottom padding clears the floating Demo tools button : it overlaps the
     //left-aligned disclaimer on mobile only, hence the two values
@@ -76,9 +76,10 @@ export function SiteFooter() {
           </div>
         </div>
 
-        {/* "testnet" is already said by the network badge and the demo panel :
-            only the audit status is new information here */}
-        <p>Unaudited contracts, for demonstration only.</p>
+        <div className="flex gap-2">
+          <span className="font-mono">Version {version} | </span>
+          <p>Unaudited contracts, for demonstration only.</p>
+        </div>
       </div>
     </footer>
   );

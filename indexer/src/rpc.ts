@@ -1,11 +1,10 @@
 //everypting that interrogate the chain
 import { createPublicClient, http, type Address } from "viem";
-import { sepolia } from "viem/chains";
 import { claimedEvent, transferEvent, splitterCreatedEvent } from "./abis.ts";
 import { BATCH_SIZE, BLOCK_PAUSE_MS, FACTORY_ADDRESS, LOGS_PAUSE_MS, RPC_URL } from "./config.ts";
 
+//not chain specific
 const client = createPublicClient({
-  chain: sepolia,
   transport: http(RPC_URL, { retryCount: 5, retryDelay: 1_000 })
 });
 
