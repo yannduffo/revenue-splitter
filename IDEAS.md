@@ -27,11 +27,10 @@ Deferred scope and future work.
 ## Frontend
 
 ### Performance
-- **Indexer** — the real fix. Direct log queries make first loads slow and would
-  not hold under traffic. The data access layer in `lib/chain/` is isolated so the
-  swap stays contained.
-- Cache logs more aggressively in the meantime, to cut API calls
-- Confirm Multicall3 is actually used through Infura
+* Optimistic update after a claim: the receipt carries the `Claimed` event, so the claimed total need not wait for the indexer
+* Cache token `symbol` and `decimals` (immutable) instead of reading them on every refresh
+* Read only Postgres role for the web app
+* Confirm Multicall3 is actually used through Infura
 
 ### Features
 - **WalletConnect connector** — mobile browsers are read-only without it

@@ -23,17 +23,25 @@ member holds their own checkpoint on it. What you're owed is the gap between the
 counter and your checkpoint, times your shares. Adding a fiftieth member costs a
 deposit nothing.
 
-**Deposits are detected by balance difference.** There is no `deposit()` function.
-The contract compares its actual token balance against what it has already
-attributed, so a plain ERC-20 `transfer` to a splitter executes no code at all.
+**Deposits are detected by balance difference.** There is no `deposit()` function. The contract compares its actual token balance against what it has already attributed, so a plain ERC-20 `transfer` to a splitter executes no code at all.
 The money sits there until the next claim absorbs it — correctly and in full,
-however many unrecorded deposits piled up. That is what lets a splitter be used as
-an ordinary payment address, and it handles fee-on-transfer tokens correctly for
-free, since only what actually arrived is ever distributed.
+however many unrecorded deposits piled up. That is what lets a splitter be used as an ordinary payment address, and it handles fee-on-transfer tokens correctly for free, since only what actually arrived is ever distributed.
+
+The **trade-off** is that nothing on-chain knows what a splitter has been paid in: no code runs, so nothing is recorded, and there is no list of the tokens it holds. Making deposits observable would take a deposit(token, amount) entry point : an approval, an integration, a payer who has to know they're paying a splitter. *Token discovery lives off-chain instead*, which is the cost of being payable by anyone with no integration at all.
 
 There is no admin, no owner and no escape hatch. The allocation is fixed at
 creation and nobody can change it, including the team that created it. Every
 recovery path is also a theft path — the absence of one is the point.
+
+## Reading the chain
+
+Contract state (balances, pending amounts) is read live through view calls. Everything that comes from event logs (the splitter list, token discovery, history, claimed totals) is served by a small custom indexer.
+
+Generic indexers watch contracts. Splittr needs the opposite: every ERC-20 `Transfer` *to* a growing set of addresses, whatever the token. Ponder, tried first, could only get there by ingesting every transfer on the chain (around 600k logs a day on Sepolia) to keep a handful.
+
+The indexer asks the RPC for exactly what it needs instead: one `eth_getLogs` per block range, with the list of splitters as an OR filter on the recipient topic. A Node worker walks the chain with a single cursor, writes each range to Postgres in one transaction, stays a few blocks behind the head and rolls back when a reorg changes a block it already indexed. Next.js route handlers serve the result. The full history rebuilds in about 40 seconds.
+
+The cost is eventual consistency: indexed data trails the chain by one to two minutes, while balances stay live.
 
 ## Try it
 
@@ -52,14 +60,16 @@ block, in proportion to their share.
 
 ```
 revenue-splitter/
-├── contracts/     Foundry — Solidity, 42 tests, deploy and seed scripts
-├── web/           Next.js dApp — wagmi, viem, no indexer
-└── IDEAS.md       Deferred scope & futur improvments
+├── contracts/     Foundry: Solidity, 42 tests, deploy and seed scripts
+├── indexer/       Node worker + Postgres: event logs for the web app
+├── web/           Next.js dApp: wagmi, viem, API routes over the indexer
+└── IDEAS.md       Deferred scope and future improvements
 ```
 
 Each part has its own README: [contracts](./contracts/README.md) for the
-accounting model and the test suite, [web](./web/README.md) for the frontend
-architecture and its technical trade-offs.
+accounting model and the test suite, [indexer](./indexer/README.md) for how the
+chain is indexed, [web](./web/README.md) for the frontend architecture and its
+technical trade-offs.
 
 ## Deployed on Sepolia
 
@@ -80,6 +90,9 @@ cd contracts && forge test
 anvil                          # terminal 1
 make deploy-seed-anvil         # terminal 2
 
+# indexer (Postgres + worker)
+cd indexer && docker compose up -d && npm install && npm run dev
+
 # frontend
 cd web && npm install && npm run wagmi && npm run dev
 ```
@@ -88,12 +101,7 @@ Details in each README.
 
 ## Known limitations
 
-**No indexer.** The frontend reads everything straight from the chain — event
-logs for discovery and history, view calls for balances. At this scale that means
-no backend, no database and no extra deployment, but first loads are slow and the
-setup would not hold up under real traffic. The data access layer is isolated so
-that swapping in an indexer touches three files and nothing else. It is the
-change this project most obviously needs next.
+**Indexed data lags.** History, token discovery and claimed totals trail the chain by one to two minutes (poll interval plus confirmations), a deliberate trade to stay within Infura's free tier. Balances and pending amounts are always live.
 
 **Mobile is read-only.** No WalletConnect connector yet, so browsers without an
 injected wallet can browse but not transact.
@@ -112,7 +120,9 @@ pull-based claims, no admin, small enough to read end to end in one sitting.
 - [x] Contracts, tests, deployment and seeding scripts
 - [x] Web interface — create, browse, claim, batch claim, activity history
 - [x] Sepolia deployment with verified contracts and a live demo
-- [ ] v1.1 Indexer — replace direct log queries, fix load times
+- [x] v1.1 : responsive design for mobiles
+- [x] v1.2 : HTML semantic, 3 mini features (isOfficialSplitter, token balances, footer), CI solidity pipeline
+- [x] v1.3 : custom indexer (Node worker + Postgres), instant loads
 - [ ] v2: native ETH, mutable allocations with a settlement path, delegated claims, WalletConnect for mobile
 
 ## License

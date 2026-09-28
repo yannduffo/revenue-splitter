@@ -1,5 +1,20 @@
 # Indexer dev notes
 
+## Bilan (28/09/2026)
+
+Les 7 étapes du plan C sont faites, tout est en prod (v1.3).
+
+Écarts par rapport au plan :
+* étape 3 : un tick toutes les 60 s et pas 12 s, pour le budget Infura (≈ 1,7 M crédits/jour avec les vérifs de reorg)
+* étape 4 : en plus du hash du dernier checkpoint, vérif pendant la sync (hash de toBlock avant/après les getLogs + blockHash de chaque log). Checkpoints élagués sous `finalized`
+* étape 5 : API en route handlers Next.js et pas Hono, donc 3 conteneurs au lieu de 4. `/claimed` renvoie tous les couples (token, member), le client filtre
+* étape 6 : `fromBlock` a disparu de tout le web, cache getLogs retiré du proxy RPC
+* étape 7 : worker configuré par env (`FACTORY_ADDRESS`, `FACTORY_BLOCK`, `CONFIRMATIONS`), arrêt propre sur SIGTERM, schéma créé par initdb au premier démarrage
+
+Résultat : chargements quasi instantanés, resync complet en ~40 s, données indexées en retard de 1 à 2 min (cohérence à terme), soldes toujours en direct.
+
+Piste restante : mise à jour optimiste après un claim (le reçu de la tx contient l'event `Claimed`).
+
 - All ERC20 transfers on 320 blocks : 26_832
 
 

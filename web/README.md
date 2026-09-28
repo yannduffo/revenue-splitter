@@ -1,7 +1,8 @@
 # Revenue-splitter frontend
 
-Next.js app for the Splittr revenue splitter. Reads and writes directly to the
-chain, with no backend of its own beyond a thin RPC proxy.
+Next.js app for the Splittr revenue splitter. Reads contract state straight from
+the chain, and everything derived from event logs from the indexer database,
+through its own API routes.
 
 Live: https://revenue-splitter.yannduffo.xyz
 
@@ -21,6 +22,8 @@ npm run wagmi                  # generates src/lib/generated.ts from ../contract
 npm run dev
 ```
 
+Lists and history come from the indexer: start it first (see [indexer](../indexer/README.md)), or pages will load with empty lists.
+
 `npm run wagmi` reads the Foundry artifacts in `../contracts/out` and writes
 typed ABIs. Re-run it after any contract change — that is what surfaces breakage
 as TypeScript errors instead of runtime reverts. The generated file is committed,
@@ -33,11 +36,11 @@ so a deploy host does not need Foundry.
 | `NEXT_PUBLIC_CHAIN` | `sepolia` or `anvil` — which chain the app targets |
 | `NEXT_PUBLIC_SITE_URL` | absolute URL, used as `metadataBase` for OG tags |
 | `NEXT_PUBLIC_SEPOLIA_FACTORY` | factory address |
-| `NEXT_PUBLIC_SEPOLIA_FACTORY_BLOCK` | deployment block, lower bound for log queries |
 | `NEXT_PUBLIC_SEPOLIA_DEMO_SPLITTER_A/B` | demo splitters, used for the contextual help panel |
 | `NEXT_PUBLIC_SEPOLIA_DEMO_TOKENS` | demo ERC-20s exposed in the faucet |
 | `NEXT_PUBLIC_ANVIL_*` | same, for local development |
 | `INFURA_API_KEY` | **server-side only**, never prefixed — read by the RPC proxy |
+| `DATABASE_URL` | **server side only**: the indexer database, read by the API routes |
 
 Switching between local and testnet is a matter of flipping
 `NEXT_PUBLIC_CHAIN` and restarting the dev server. Both chains stay declared in
@@ -58,12 +61,13 @@ Copy the printed factory address into `NEXT_PUBLIC_ANVIL_FACTORY`.
 ## Stack
 
 - **Next.js 16** (App Router) — every page touching the wallet is a client component
-- **viem** — RPC transport, ABI encoding, log queries
+- **viem**: RPC transport, ABI encoding
 - **wagmi 3** — React bindings over viem
 - **TanStack Query** — every chain read is a query, with caching and invalidation
+- **postgres.js**: read access to the indexer database, from route handlers only
 - **Tailwind v4** — no config file; theme tokens are declared in `globals.css`
 
-No connect-wallet kit, no indexer, no database. See the decisions below.
+No connect-wallet kit. See the decisions below.
 
 ---
 
@@ -73,11 +77,13 @@ No connect-wallet kit, no indexer, no database. See the decisions below.
 src/
 ├─ app/
 │  ├─ api/rpc/          RPC proxy — keeps the provider key server-side
+│  ├─ api/splitters/    indexer API: route handlers reading Postgres
 │  ├─ page.tsx          splitter list
 │  ├─ create/           creation form
 │  └─ s/[address]/      splitter detail
 ├─ lib/
 │  ├─ chain/            data access layer — pure functions over a viem client
+│  ├─ db.ts             Postgres pool, server only
 │  ├─ generated.ts      wagmi CLI output, never edited by hand
 │  ├─ errors.ts         custom errors → human messages
 │  └─ format.ts         bigint, decimals, basis points
@@ -89,25 +95,19 @@ The important boundary is `lib/chain/`. Every function there takes a viem client
 and returns plain domain objects — no React, no hooks, no query cache. Hooks wrap
 them, components only ever see hooks.
 
-That separation exists for one reason: swapping the direct log queries for an
-indexer means rewriting three files in `lib/chain/` and nothing else. It is the
-single change this app is most likely to need.
+That separation paid off: moving from direct log queries to the indexer rewrote
+four files in `lib/chain/`. Hooks only lost a `fromBlock` parameter, and no
+component changed.
 
 ---
 
 ## Technical decisions
 
-### No indexer
+### Indexed reads, live state
 
-Everything is read straight from the chain: `SplitterCreated` logs for the
-splitter list, `Transfer` logs for token discovery, `Claimed` logs for history,
-and view calls for balances. At the current scale this needs no backend, no
-database and no deployment beyond the app itself.
+Anything derived from event logs comes from `/api/splitters/*`, route handlers that query the indexer database. Anything that is contract state (`pending`, balances, `isOfficialSplitter`) stays a live view call. Bigints travel as strings in JSON and are converted back in `lib/chain/`.
 
-The cost is visible: initial page loads are slow, and the infrastructure would
-not hold up under real traffic. Caching and staggered refreshes carry it for a
-demo. A production version needs an indexer, and the data access layer is shaped
-so that swap stays cheap.
+The database pool is created on first use, not at import: `next build` imports every route, and `DATABASE_URL` only exists at runtime.
 
 ### Token discovery by recipient
 
@@ -116,11 +116,9 @@ never iterates over tokens. Discovery therefore queries ERC-20 `Transfer` logs
 filtered on the indexed recipient topic, **with no contract address filter**:
 every token ever sent to a given splitter, without declaring anything upfront.
 
-This is worth flagging because it is an unusual query shape. Off-the-shelf
-indexers are configured around contracts to watch, not around recipients, so the
-obvious tools do not map cleanly onto this problem. It is also the query that
-providers restrict first — the free Alchemy tier caps `eth_getLogs` at a 10-block
-range, which makes it unusable here. Infura's range is wide enough.
+This is an unusual query shape: generic indexers watch contracts, not recipients.
+It is the reason this project runs its own indexer, detailed in
+[indexer/NOTES.md](../indexer/NOTES.md).
 
 ### No connect-wallet kit
 
@@ -160,8 +158,7 @@ through the home page, and a shared link lands straight on `/s/0x…` with an em
 cache — precisely the case the check exists for. The cache can *confirm* an
 address (present in the list means created by the factory) but never *refute* one,
 since absence may only mean a cold cache. It is used as `initialData` for the
-positive case, falling through to the call otherwise. One `eth_call` against the
-~5000 credits a splitter page already costs.
+positive case, falling through to the call otherwise. It costs one `eth_call`.
 
 The check also runs *before* reading the splitter, because `getMembers()` reverts
 on a foreign contract and the page would otherwise spin forever.
@@ -195,22 +192,23 @@ readable messages.
 
 ## Known limitations
 
-- **No indexer** — slow first loads, would not scale past a demo
-- **No WalletConnect** — read-only on mobile browsers
-- **Log range** is bounded by the RPC provider; queries start from each splitter's
-  creation block to stay within it
-- **No dark mode**, deliberately — one mode, done properly
+**Indexed data lags** the chain by one to two minutes. Balances are live.
+
+**No WalletConnect**: read only on mobile browsers.
+
+**No dark mode**, deliberately: one mode, done properly.
 
 ---
 
 ## Deployment
 
-Docker, behind a reverse proxy on a VPS.
+Docker Compose on a VPS behind Caddy, three containers: Postgres, the indexer
+worker and this app.
 
 One thing to get right: `NEXT_PUBLIC_*` variables are inlined by `next build`, so
 they must be passed as **build args**, not runtime environment. Only
-`INFURA_API_KEY` is read at runtime, by the RPC proxy. Passing the public ones at
+`INFURA_API_KEY` and `DATABASE_URL` are read at runtime. Passing the public ones at
 runtime only produces an image that builds cleanly and then finds no factory.
 
-The reverse proxy must allow POST to `/api/rpc` with a generous body size — viem
-batches JSON-RPC calls — and a timeout above 30s for wide log queries.
+The reverse proxy must allow POST to `/api/rpc` with a generous body size, since
+viem batches JSON-RPC calls.

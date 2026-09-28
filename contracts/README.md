@@ -101,13 +101,17 @@ deposits, claims and batch claims across five members and two tokens:
 INV-4 (no double claim) is a single-sequence property and is covered by unit tests
 instead.
 
-Two profiles: the default one for fast feedback, `deep` for a much higher run count
-before a commit or in CI.
+Two profiles: the default one for fast feedback and CI, `deep` for a much higher run
+count before a release.
 
 ```bash
 forge test
 FOUNDRY_PROFILE=deep forge test
 ```
+
+## CI
+
+GitHub Actions runs on every push or pull request touching `contracts/`: `forge fmt --check`, `forge build --sizes`, then the test suite. It can also be started by hand from the Actions tab.
 
 ## Run locally
 
@@ -146,10 +150,7 @@ never recorded. Poll it directly.
 give and only reverts when every token in it yields zero. Batches are capped at
 `MAX_CLAIM_BATCH` tokens.
 
-**There is no on-chain list of the tokens a splitter holds**, by design: nothing on-chain
-ever loops over tokens, so nothing needs to enumerate them. Discovering them is left to
-the consumer, by reading ERC-20 `Transfer` logs addressed to a splitter over a known
-token list, plus a manual token-address input for anything outside that list.
+**There is no on-chain list of the tokens a splitter holds**, by design: nothing on-chain ever loops over tokens, so nothing needs to enumerate them. Discovery happens off-chain: the [indexer](../indexer/README.md) records every ERC-20 `Transfer` addressed to a splitter, whatever the token. The web app also accepts a token address typed by hand.
 
 **Small deposits can round a member's amount to zero.** The per-member amount truncates
 down, so a member holding a handful of basis points sees nothing until enough value has

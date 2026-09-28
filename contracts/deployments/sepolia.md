@@ -27,8 +27,10 @@
 
 Demo splitter caracteristics :
 - 2 members (shares respectively are [6_000, 4_000])
-- 1 tokens ("Demo Euro")
-- State : 10 dEUR received, no one claimed
+- 2 tokens ("Demo Euro" & "Demo Dollar")
+- Seeded with 35 dEUR (10 then 25) and 40 dUSD. Member0 later claimed their dEUR share (21 dEUR), dUSD is untouched
+
+The demo keeps evolving: the live state is on the site.
 
 |Name|Address|
 |:--|:--|
@@ -39,7 +41,7 @@ Demo splitter caracteristics :
 Demo splitter caracteristics :
 - 4 members (shares respectively are [3_500, 2_777, 2_500, 1_223])
 - 2 tokens ("Demo Euro" & "Demo Dollar")
-- State : 
+- State at seeding time : 
   - member0 : claimed dUSD one time
   - member1 : claimed dEUR early and dUSD lately
   - member2 : claimed everything before last deposit
